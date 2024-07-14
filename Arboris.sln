@@ -5,6 +5,8 @@ VisualStudioVersion = 17.10.35027.167
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Arboris", "Arboris\Arboris.csproj", "{F21B70B0-E5B8-499A-B1C2-D7F87BE04AB9}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AstTest", "AstTest\AstTest.csproj", "{E3D86038-0403-4998-8A5D-29294F7DC8C4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +17,10 @@ Global
 		{F21B70B0-E5B8-499A-B1C2-D7F87BE04AB9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F21B70B0-E5B8-499A-B1C2-D7F87BE04AB9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F21B70B0-E5B8-499A-B1C2-D7F87BE04AB9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E3D86038-0403-4998-8A5D-29294F7DC8C4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E3D86038-0403-4998-8A5D-29294F7DC8C4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E3D86038-0403-4998-8A5D-29294F7DC8C4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E3D86038-0403-4998-8A5D-29294F7DC8C4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
