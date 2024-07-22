@@ -1,24 +1,27 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
+using Arboris.Models.Code;
 using ClangSharp;
 using ClangSharp.Interop;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
+using System.Text.Encodings.Web;
+using System.Text.Json;
+using Index = ClangSharp.Index;
 
 namespace AstTest;
 
 public class Program
 {
+    private readonly static HashSet<Function> functions = [];
+    private readonly static string[] leftString = ["const "];
+    private readonly static string[] rightString = [" &", " *"];
+
     unsafe public static void Main()
     {
-        string basePath = @"D:\Downloads\MHM_Dll";
+        string basePath = @"D:\Code\MHM_Library_Test\MHM_Dll";
         string[] args =
         [
-            //$"-I {Path.Combine(basePath, @"Include\Self")} -I {Path.Combine(basePath, "Include")} -I {Path.Combine(basePath, @"Source\src")} -I {Path.Combine(basePath, @"Source\Soruce_Tool")} -I {Path.Combine(basePath, @"Source\Source_MATLAB_Lib")} -I {Path.Combine(basePath, @"Extlib\rapidjson")}",
             "-std=c++14",
-            //"-Xclang",
-            //"-ast-dump",
-            //"-fsyntax-only",
+            "-xc++",
             $"-I{Path.Combine(basePath, "Include")}",
             $"-I{Path.Combine(basePath, "Include\\Self")}",
             $"-I{Path.Combine(basePath, "Source\\src")}",
@@ -27,10 +30,9 @@ public class Program
             $"-I{Path.Combine(basePath, "Extlib\\rapidjson")}",
         ];
 
-        using CXIndex index = CXIndex.Create(false, false);
+        using Index index = Index.Create(false, true);
 
-        //using CXTranslationUnit translationUnit = CXTranslationUnit.CreateFromSourceFile(index, Path.Combine(basePath, @"Z:\Code\SnapshotAdapter\reference\result\include\result.hpp"), [], []);
-        using CXTranslationUnit translationUnit = CXTranslationUnit.CreateFromSourceFile(index, Path.Combine(basePath, @"Source\src\atw_mcalc_MATLAB_MHM_SchedulingProgramming_Main.cpp"), args, []);
+        CXTranslationUnit translationUnit = CXTranslationUnit.CreateFromSourceFile(index.Handle, Path.Combine(basePath, @"Source\Source_MATLAB_Lib\datetime.cpp"), args, []);
         using TranslationUnit tu = TranslationUnit.GetOrCreate(translationUnit);
 
         for (uint i = 0; i < translationUnit.NumDiagnostics; i++)
@@ -46,72 +48,91 @@ public class Program
             return;
         }
 
-
-
         foreach (var cursor in tu.TranslationUnitDecl.CursorChildren)
         {
-
-            PrintNode(cursor, 0);
+            PrintNode(cursor, 0, null!, 0);
         }
+
+
+        JsonSerializerOptions options = new()
+        {
+            WriteIndented = true,
+            Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+        };
+
+        if (File.Exists("functions.json"))
+            File.Delete("functions.json");
+        File.WriteAllText("functions.json", JsonSerializer.Serialize(functions, options));
     }
 
 
-    public static void PrintNode(Cursor cursor, uint depth)
+    public static void PrintNode(Cursor cursor, uint depth, Function function, uint includeDepth)
     {
-        if (!cursor.Location.IsFromMainFile)
-        {
+        if (!cursor.Location.IsFromMainFile && function is null)
             return;
-        }
+        //else if (!cursor.Location.IsFromMainFile && function is not null && includeDepth > 5)
+        //    return;
+        //else if (!cursor.Location.IsFromMainFile && function is not null && includeDepth <= 5)
+        //    includeDepth++;
 
+        //if (cursor.Location.IsFromMainFile)
+        //    includeDepth = 0;
+
+        cursor.Extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint startColumn, out uint _);
+        cursor.Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint endColumn, out uint _);
+        Location location = new(file.Name.ToString(), startLine, startColumn, endLine, endColumn);
         for (uint i = 0; i < depth; ++i)
             Console.Write(" ");
 
 
         CXString cXType = cursor.Handle.Type.Spelling;
-        Console.WriteLine($"{cursor.CursorKindSpelling} {cursor.Spelling} {cXType}");
-        clang.disposeString(cXType);
+        Console.WriteLine($"{cursor.CursorKindSpelling} {cursor.Spelling} {cXType} (StartLine: {location.StartLine}, StartColumn:{location.StartColumn}, EndLine: {location.EndLine}, EndColumn: {location.EndColumn})");
+        if (/*cursor.CursorKindSpelling == "DeclRefExpr" && */cursor.Spelling == "minus")
+        {
+            Console.WriteLine(cursor.GetType());
+        }
 
+        //if (cursor.CursorKindSpelling == "ParmDecl")
+        //    return;
+
+        if (cursor.CursorKindSpelling == "FunctionDecl")
+        {
+            function = new(cursor.Spelling, location, []);
+            functions.Add(function);
+        }
+        //if (function is null)
+        //    return;
+
+        //string type = cXType.ToString();
+        //if (type != string.Empty)
+        //{
+        //    foreach (var left in leftString)
+        //        type = RemoveLeftString(type, left);
+        //    foreach (var right in rightString)
+        //        type = RemoveRightString(type, right);
+        //    if (!function.Types.ContainsKey(type))
+        //        function.Types[type] = [];
+        //    function.Types[type].Add(location);
+        //}
+        clang.disposeString(cXType);
 
         foreach (var child in cursor.CursorChildren)
         {
-            PrintNode(child, depth + 1);
+            PrintNode(child, depth + 1, function, includeDepth);
         }
     }
 
-    unsafe public static void PrintNode(CXCursor cursor, uint depth)
+    public static string RemoveLeftString(string str, string remove)
     {
-        //CXSourceLocation location = clang.getCursorLocation(cursor);
-        //cursor.Location.GetExpansionLocation(out CXFile file, out uint line, out uint column, out uint offset);
-        //Console.WriteLine($"{file.Name} {line} {column} {offset}");
-        if (clang.Location_isFromMainFile(cursor.Location) == 0)
-        {
-            return;
-        }
-
-        for (uint i = 0; i < depth; ++i)
-            Console.Write(" ");
-
-        CXString cursor_kind = clang.getCursorKindSpelling(clang.getCursorKind(cursor));
-        CXString cursor_spelling = clang.getCursorSpelling(cursor);
-        CXString cXType = clang.getCursorType(cursor).Spelling;
-
-        Console.WriteLine($"{cursor_kind} {cursor_spelling} {cXType}");
-
-
-
-        clang.disposeString(cursor_kind);
-        clang.disposeString(cursor_spelling);
-        clang.disposeString(cXType);
-
-        clang.visitChildren(cursor, &Visitor, &depth);
+        if (str.StartsWith(remove))
+            return str[remove.Length..];
+        return str;
     }
 
-    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
-    private unsafe static CXChildVisitResult Visitor(CXCursor c, CXCursor parent, void* client_data)
+    public static string RemoveRightString(string str, string remove)
     {
-        uint depth = *(uint*)client_data;
-        //Console.WriteLine(depth);
-        PrintNode(c, depth + 1);
-        return CXChildVisitResult.CXChildVisit_Recurse;
+        if (str.EndsWith(remove))
+            return str[..^remove.Length];
+        return str;
     }
 }
