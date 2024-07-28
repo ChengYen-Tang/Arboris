@@ -21,10 +21,10 @@ public class Node
     public Guid? HppLocationId { get; set; }
     public HppLocation? HppLocation { get; set; }
 
-    public ICollection<NodeMember>? Members { get; set; }
-    public ICollection<NodeType>? Types { get; set; }
-    public ICollection<Dependency>? Dependencies { get; set; }
+    public ICollection<NodeMember> Members { get; set; }
+    public ICollection<NodeType> Types { get; set; }
+    public ICollection<NodeDependency> Dependencies { get; set; }
 
     public Node()
-        => Id = Guid.NewGuid();
+        => (Id, Members, Types, Dependencies) = (Guid.NewGuid(), new List<NodeMember>(), new List<NodeType>(), new List<NodeDependency>());
 }

@@ -6,10 +6,13 @@ namespace Arboris.EntityFramework.EntityFrameworkCore;
 public class ArborisDbContext(DbContextOptions<ArborisDbContext> options) : DbContext(options)
 {
     public DbSet<Project> Projects { get; set; }
-    public DbSet<Node> CxxNodes { get; set; }
-    public DbSet<HeaderLocation> HeaderLocations { get; set; }
-    public DbSet<CppLocation> CppLocations { get; set; }
-    public DbSet<HppLocation> HppLocations { get; set; }
+    public DbSet<Node> Cxx_Nodes { get; set; }
+    public DbSet<HeaderLocation> Cxx_HeaderLocations { get; set; }
+    public DbSet<CppLocation> Cxx_CppLocations { get; set; }
+    public DbSet<HppLocation> Cxx_HppLocations { get; set; }
+    public DbSet<NodeMember> Cxx_NodeMembers { get; set; }
+    public DbSet<NodeType> Cxx_NodeTypes { get; set; }
+    public DbSet<NodeDependency> Cxx_NodeDependencies { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -24,6 +27,10 @@ public class ArborisDbContext(DbContextOptions<ArborisDbContext> options) : DbCo
         });
         builder.Entity<Node>(entity =>
         {
+            entity.HasOne(n => n.Project)
+                .WithMany(p => p.CxxNodes)
+                .HasForeignKey(n => n.ProjectId);
+
             entity.HasOne(n => n.HeaderLocation)
                 .WithOne(c => c.Node)
                 .HasForeignKey<HeaderLocation>(c => c.NodeId)
@@ -80,47 +87,32 @@ public class ArborisDbContext(DbContextOptions<ArborisDbContext> options) : DbCo
 
         builder.Entity<NodeMember>(entity =>
         {
-            entity.HasKey(nm => new { nm.NodeId, nm.MemberId });
-
             entity.HasOne(nm => nm.Node)
                 .WithMany(n => n.Members)
-                .HasForeignKey(nm => nm.NodeId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .HasForeignKey(nm => nm.NodeId);
             entity.HasOne(nm => nm.Member)
                 .WithOne()
-                .HasForeignKey<Node>(c => c.Id)
-                .HasPrincipalKey<NodeMember>(n => n.MemberId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .HasForeignKey<NodeMember>(c => c.MemberId);
         });
 
         builder.Entity<NodeType>(entity =>
         {
-            entity.HasKey(nt => new { nt.NodeId, nt.TypeId });
-
             entity.HasOne(nt => nt.Node)
                 .WithMany(n => n.Types)
-                .HasForeignKey(nt => nt.NodeId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .HasForeignKey(nt => nt.NodeId);
             entity.HasOne(nt => nt.Type)
                 .WithOne()
-                .HasForeignKey<Node>(c => c.Id)
-                .HasPrincipalKey<NodeType>(n => n.TypeId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .HasForeignKey<NodeType>(c => c.TypeId);
         });
 
-        builder.Entity<Dependency>(entity =>
+        builder.Entity<NodeDependency>(entity =>
         {
-            entity.HasKey(d => new { d.NodeId, d.FromId });
-
             entity.HasOne(d => d.Node)
                 .WithMany(n => n.Dependencies)
-                .HasForeignKey(d => d.NodeId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .HasForeignKey(d => d.NodeId);
             entity.HasOne(d => d.From)
                 .WithOne()
-                .HasForeignKey<Node>(c => c.Id)
-                .HasPrincipalKey<Dependency>(d => d.FromId)
-                .OnDelete(DeleteBehavior.NoAction);
+                .HasForeignKey<NodeDependency>(c => c.FromId);
         });
     }
 }
