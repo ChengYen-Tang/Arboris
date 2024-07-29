@@ -34,55 +34,25 @@ public class ArborisDbContext(DbContextOptions<ArborisDbContext> options) : DbCo
             entity.HasOne(n => n.HeaderLocation)
                 .WithOne(c => c.Node)
                 .HasForeignKey<HeaderLocation>(c => c.NodeId)
-                .HasPrincipalKey<Node>(n => n.Id)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(n => n.CppLocation)
                 .WithOne(c => c.Node)
                 .HasForeignKey<CppLocation>(c => c.NodeId)
-                .HasPrincipalKey<Node>(n => n.Id)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(n => n.HppLocation)
                 .WithOne(c => c.Node)
                 .HasForeignKey<HppLocation>(c => c.NodeId)
-                .HasPrincipalKey<Node>(n => n.Id)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasMany(n => n.Members)
                 .WithOne(m => m.Node)
-                .HasForeignKey(m => m.NodeId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(m => m.NodeId);
             entity.HasMany(n => n.Types)
                 .WithOne(t => t.Node)
-                .HasForeignKey(t => t.NodeId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasForeignKey(t => t.NodeId);
             entity.HasMany(n => n.Dependencies)
                 .WithOne(d => d.Node)
-                .HasForeignKey(d => d.NodeId)
-                .OnDelete(DeleteBehavior.Cascade);
-        });
-        builder.Entity<HeaderLocation>(entity =>
-        {
-            entity.HasOne(l => l.Node)
-                .WithOne(n => n.HeaderLocation)
-                .HasForeignKey<Node>(n => n.HeaderLocationId)
-                .HasPrincipalKey<HeaderLocation>(l => l.Id)
-                .OnDelete(DeleteBehavior.SetNull);
-        });
-        builder.Entity<CppLocation>(entity =>
-        {
-            entity.HasOne(l => l.Node)
-                .WithOne(n => n.CppLocation)
-                .HasForeignKey<Node>(c => c.CppLocationId)
-                .HasPrincipalKey<CppLocation>(l => l.Id)
-                .OnDelete(DeleteBehavior.SetNull);
-        });
-        builder.Entity<HppLocation>(entity =>
-        {
-            entity.HasOne(l => l.Node)
-                .WithOne(n => n.HppLocation)
-                .HasForeignKey<Node>(c => c.HppLocationId)
-                .HasPrincipalKey<HppLocation>(l => l.Id)
-                .OnDelete(DeleteBehavior.SetNull);
+                .HasForeignKey(d => d.NodeId);
         });
 
         builder.Entity<NodeMember>(entity =>

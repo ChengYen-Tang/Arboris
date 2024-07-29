@@ -45,11 +45,9 @@ public class NodeTests
         Assert.AreEqual(generateBuilder.Projects[0].Id, node.Project!.Id);
         Assert.AreEqual(generateBuilder.Projects[0].Name, node.Project!.Name);
         Assert.AreEqual(generateBuilder.Projects[0].CreateTime, node.Project!.CreateTime);
-        Assert.AreEqual(generateBuilder.Locations[0].Id, node.HeaderLocationId);
         Assert.AreEqual(generateBuilder.Locations[0].FilePath, node.HeaderLocation!.FilePath);
         Assert.AreEqual(generateBuilder.Locations[0].StartLine, node.HeaderLocation!.StartLine);
         Assert.AreEqual(generateBuilder.Locations[0].EndLine, node.HeaderLocation!.EndLine);
-        Assert.AreEqual(generateBuilder.Locations[1].Id, node.CppLocationId);
         Assert.AreEqual(generateBuilder.Locations[1].FilePath, node.CppLocation!.FilePath);
         Assert.AreEqual(generateBuilder.Locations[1].StartLine, node.CppLocation!.StartLine);
         Assert.AreEqual(generateBuilder.Locations[1].EndLine, node.CppLocation!.EndLine);
@@ -83,11 +81,9 @@ public class NodeTests
         Assert.AreEqual(generateBuilder.Projects[0].Id, nodes[0].Project!.Id);
         Assert.AreEqual(generateBuilder.Projects[0].Name, nodes[0].Project!.Name);
         Assert.AreEqual(generateBuilder.Projects[0].CreateTime, nodes[0].Project!.CreateTime);
-        Assert.AreEqual(generateBuilder.Locations[0].Id, nodes[0].HeaderLocationId);
         Assert.AreEqual(generateBuilder.Locations[0].FilePath, nodes[0].HeaderLocation!.FilePath);
         Assert.AreEqual(generateBuilder.Locations[0].StartLine, nodes[0].HeaderLocation!.StartLine);
         Assert.AreEqual(generateBuilder.Locations[0].EndLine, nodes[0].HeaderLocation!.EndLine);
-        Assert.AreEqual(generateBuilder.Locations[1].Id, nodes[0].CppLocationId);
         Assert.AreEqual(generateBuilder.Locations[1].FilePath, nodes[0].CppLocation!.FilePath);
         Assert.AreEqual(generateBuilder.Locations[1].StartLine, nodes[0].CppLocation!.StartLine);
         Assert.AreEqual(generateBuilder.Locations[1].EndLine, nodes[0].CppLocation!.EndLine);
@@ -99,11 +95,9 @@ public class NodeTests
         Assert.AreEqual(generateBuilder.Projects[1].Id, nodes[1].Project!.Id);
         Assert.AreEqual(generateBuilder.Projects[1].Name, nodes[1].Project!.Name);
         Assert.AreEqual(generateBuilder.Projects[1].CreateTime, nodes[1].Project!.CreateTime);
-        Assert.AreEqual(generateBuilder.Locations[2].Id, nodes[1].HeaderLocationId);
         Assert.AreEqual(generateBuilder.Locations[2].FilePath, nodes[1].HeaderLocation!.FilePath);
         Assert.AreEqual(generateBuilder.Locations[2].StartLine, nodes[1].HeaderLocation!.StartLine);
         Assert.AreEqual(generateBuilder.Locations[2].EndLine, nodes[1].HeaderLocation!.EndLine);
-        Assert.AreEqual(generateBuilder.Locations[3].Id, nodes[1].CppLocationId);
         Assert.AreEqual(generateBuilder.Locations[3].FilePath, nodes[1].CppLocation!.FilePath);
         Assert.AreEqual(generateBuilder.Locations[3].StartLine, nodes[1].CppLocation!.StartLine);
         Assert.AreEqual(generateBuilder.Locations[3].EndLine, nodes[1].CppLocation!.EndLine);
@@ -139,7 +133,6 @@ public class NodeTests
 
         Node rootNode = nodes.First(item => item.Spelling == "RootNode1");
         Node depNode = nodes.First(item => item.Spelling == "DependencyNode");
-        Assert.AreEqual(generateBuilder.Locations[2].Id, depNode.HppLocationId);
         Assert.AreEqual(generateBuilder.Locations[2].FilePath, depNode.HppLocation!.FilePath);
         Assert.AreEqual(generateBuilder.Locations[2].StartLine, depNode.HppLocation!.StartLine);
         Assert.AreEqual(generateBuilder.Locations[2].EndLine, depNode.HppLocation!.EndLine);
