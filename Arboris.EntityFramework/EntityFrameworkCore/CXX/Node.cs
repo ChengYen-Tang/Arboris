@@ -13,9 +13,8 @@ public class Node
     [Required]
     public Guid ProjectId { get; set; }
     public Project? Project { get; set; }
-    public HeaderLocation? HeaderLocation { get; set; }
-    public CppLocation? CppLocation { get; set; }
-    public HppLocation? HppLocation { get; set; }
+    public DefineLocation? DefineLocation { get; set; }
+    public ImplementationLocation? ImplementationLocation { get; set; }
 
     public ICollection<NodeMember> Members { get; set; }
     public ICollection<NodeType> Types { get; set; }

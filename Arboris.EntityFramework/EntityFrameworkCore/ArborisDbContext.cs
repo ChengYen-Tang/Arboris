@@ -7,9 +7,8 @@ public class ArborisDbContext(DbContextOptions<ArborisDbContext> options) : DbCo
 {
     public DbSet<Project> Projects { get; set; }
     public DbSet<Node> Cxx_Nodes { get; set; }
-    public DbSet<HeaderLocation> Cxx_HeaderLocations { get; set; }
-    public DbSet<CppLocation> Cxx_CppLocations { get; set; }
-    public DbSet<HppLocation> Cxx_HppLocations { get; set; }
+    public DbSet<DefineLocation> Cxx_DefineLocations { get; set; }
+    public DbSet<ImplementationLocation> Cxx_ImplementationLocations { get; set; }
     public DbSet<NodeMember> Cxx_NodeMembers { get; set; }
     public DbSet<NodeType> Cxx_NodeTypes { get; set; }
     public DbSet<NodeDependency> Cxx_NodeDependencies { get; set; }
@@ -31,17 +30,13 @@ public class ArborisDbContext(DbContextOptions<ArborisDbContext> options) : DbCo
                 .WithMany(p => p.CxxNodes)
                 .HasForeignKey(n => n.ProjectId);
 
-            entity.HasOne(n => n.HeaderLocation)
+            entity.HasOne(n => n.DefineLocation)
                 .WithOne(c => c.Node)
-                .HasForeignKey<HeaderLocation>(c => c.NodeId)
+                .HasForeignKey<DefineLocation>(c => c.NodeId)
                 .OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(n => n.CppLocation)
+            entity.HasOne(n => n.ImplementationLocation)
                 .WithOne(c => c.Node)
-                .HasForeignKey<CppLocation>(c => c.NodeId)
-                .OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(n => n.HppLocation)
-                .WithOne(c => c.Node)
-                .HasForeignKey<HppLocation>(c => c.NodeId)
+                .HasForeignKey<ImplementationLocation>(c => c.NodeId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasMany(n => n.Members)

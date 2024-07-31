@@ -2,7 +2,7 @@
 using Arboris.Tests.EntityFramework.CXX.TestData;
 using Microsoft.EntityFrameworkCore;
 
-namespace Arboris.Tests.EntityFramework.CXX;
+namespace Arboris.Tests.EntityFramework.EntityFrameworkCore.CXX;
 
 [TestClass]
 public class ProjectsTests

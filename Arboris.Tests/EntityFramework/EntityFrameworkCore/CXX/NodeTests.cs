@@ -3,7 +3,7 @@ using Arboris.EntityFramework.EntityFrameworkCore.CXX;
 using Arboris.Tests.EntityFramework.CXX.TestData;
 using Microsoft.EntityFrameworkCore;
 
-namespace Arboris.Tests.EntityFramework.CXX;
+namespace Arboris.Tests.EntityFramework.EntityFrameworkCore.CXX;
 
 [TestClass]
 public class NodeTests
@@ -33,9 +33,8 @@ public class NodeTests
         Assert.AreEqual(1, await dbContext.Cxx_Nodes.CountAsync());
         Node node = await dbContext.Cxx_Nodes
             .Include(item => item.Project)
-            .Include(item => item.HeaderLocation)
-            .Include(item => item.CppLocation)
-            .Include(item => item.HppLocation)
+            .Include(item => item.DefineLocation)
+            .Include(item => item.ImplementationLocation)
             .FirstAsync();
         Assert.AreEqual(generateBuilder.Nodes[0].Id, node.Id);
         Assert.AreEqual(generateBuilder.Nodes[0].CursorKindSpelling, node.CursorKindSpelling);
@@ -45,12 +44,12 @@ public class NodeTests
         Assert.AreEqual(generateBuilder.Projects[0].Id, node.Project!.Id);
         Assert.AreEqual(generateBuilder.Projects[0].Name, node.Project!.Name);
         Assert.AreEqual(generateBuilder.Projects[0].CreateTime, node.Project!.CreateTime);
-        Assert.AreEqual(generateBuilder.Locations[0].FilePath, node.HeaderLocation!.FilePath);
-        Assert.AreEqual(generateBuilder.Locations[0].StartLine, node.HeaderLocation!.StartLine);
-        Assert.AreEqual(generateBuilder.Locations[0].EndLine, node.HeaderLocation!.EndLine);
-        Assert.AreEqual(generateBuilder.Locations[1].FilePath, node.CppLocation!.FilePath);
-        Assert.AreEqual(generateBuilder.Locations[1].StartLine, node.CppLocation!.StartLine);
-        Assert.AreEqual(generateBuilder.Locations[1].EndLine, node.CppLocation!.EndLine);
+        Assert.AreEqual(generateBuilder.Locations[0].FilePath, node.DefineLocation!.FilePath);
+        Assert.AreEqual(generateBuilder.Locations[0].StartLine, node.DefineLocation!.StartLine);
+        Assert.AreEqual(generateBuilder.Locations[0].EndLine, node.DefineLocation!.EndLine);
+        Assert.AreEqual(generateBuilder.Locations[1].FilePath, node.ImplementationLocation!.FilePath);
+        Assert.AreEqual(generateBuilder.Locations[1].StartLine, node.ImplementationLocation!.StartLine);
+        Assert.AreEqual(generateBuilder.Locations[1].EndLine, node.ImplementationLocation!.EndLine);
     }
 
     [TestMethod]
@@ -65,13 +64,12 @@ public class NodeTests
 
         Assert.AreEqual(2, await dbContext.Projects.CountAsync());
         Assert.AreEqual(2, await dbContext.Cxx_Nodes.CountAsync());
-        Assert.AreEqual(2, await dbContext.Cxx_HeaderLocations.CountAsync());
-        Assert.AreEqual(2, await dbContext.Cxx_CppLocations.CountAsync());
+        Assert.AreEqual(2, await dbContext.Cxx_DefineLocations.CountAsync());
+        Assert.AreEqual(2, await dbContext.Cxx_ImplementationLocations.CountAsync());
         Node[] nodes = await dbContext.Cxx_Nodes
             .Include(item => item.Project)
-            .Include(item => item.HeaderLocation)
-            .Include(item => item.CppLocation)
-            .Include(item => item.HppLocation)
+            .Include(item => item.DefineLocation)
+            .Include(item => item.ImplementationLocation)
             .ToArrayAsync();
 
         Assert.AreEqual(generateBuilder.Nodes[0].Id, nodes[0].Id);
@@ -81,12 +79,12 @@ public class NodeTests
         Assert.AreEqual(generateBuilder.Projects[0].Id, nodes[0].Project!.Id);
         Assert.AreEqual(generateBuilder.Projects[0].Name, nodes[0].Project!.Name);
         Assert.AreEqual(generateBuilder.Projects[0].CreateTime, nodes[0].Project!.CreateTime);
-        Assert.AreEqual(generateBuilder.Locations[0].FilePath, nodes[0].HeaderLocation!.FilePath);
-        Assert.AreEqual(generateBuilder.Locations[0].StartLine, nodes[0].HeaderLocation!.StartLine);
-        Assert.AreEqual(generateBuilder.Locations[0].EndLine, nodes[0].HeaderLocation!.EndLine);
-        Assert.AreEqual(generateBuilder.Locations[1].FilePath, nodes[0].CppLocation!.FilePath);
-        Assert.AreEqual(generateBuilder.Locations[1].StartLine, nodes[0].CppLocation!.StartLine);
-        Assert.AreEqual(generateBuilder.Locations[1].EndLine, nodes[0].CppLocation!.EndLine);
+        Assert.AreEqual(generateBuilder.Locations[0].FilePath, nodes[0].DefineLocation!.FilePath);
+        Assert.AreEqual(generateBuilder.Locations[0].StartLine, nodes[0].DefineLocation!.StartLine);
+        Assert.AreEqual(generateBuilder.Locations[0].EndLine, nodes[0].DefineLocation!.EndLine);
+        Assert.AreEqual(generateBuilder.Locations[1].FilePath, nodes[0].ImplementationLocation!.FilePath);
+        Assert.AreEqual(generateBuilder.Locations[1].StartLine, nodes[0].ImplementationLocation!.StartLine);
+        Assert.AreEqual(generateBuilder.Locations[1].EndLine, nodes[0].ImplementationLocation!.EndLine);
 
         Assert.AreEqual(generateBuilder.Nodes[1].Id, nodes[1].Id);
         Assert.AreEqual(generateBuilder.Nodes[1].CursorKindSpelling, nodes[1].CursorKindSpelling);
@@ -95,19 +93,19 @@ public class NodeTests
         Assert.AreEqual(generateBuilder.Projects[1].Id, nodes[1].Project!.Id);
         Assert.AreEqual(generateBuilder.Projects[1].Name, nodes[1].Project!.Name);
         Assert.AreEqual(generateBuilder.Projects[1].CreateTime, nodes[1].Project!.CreateTime);
-        Assert.AreEqual(generateBuilder.Locations[2].FilePath, nodes[1].HeaderLocation!.FilePath);
-        Assert.AreEqual(generateBuilder.Locations[2].StartLine, nodes[1].HeaderLocation!.StartLine);
-        Assert.AreEqual(generateBuilder.Locations[2].EndLine, nodes[1].HeaderLocation!.EndLine);
-        Assert.AreEqual(generateBuilder.Locations[3].FilePath, nodes[1].CppLocation!.FilePath);
-        Assert.AreEqual(generateBuilder.Locations[3].StartLine, nodes[1].CppLocation!.StartLine);
-        Assert.AreEqual(generateBuilder.Locations[3].EndLine, nodes[1].CppLocation!.EndLine);
+        Assert.AreEqual(generateBuilder.Locations[2].FilePath, nodes[1].DefineLocation!.FilePath);
+        Assert.AreEqual(generateBuilder.Locations[2].StartLine, nodes[1].DefineLocation!.StartLine);
+        Assert.AreEqual(generateBuilder.Locations[2].EndLine, nodes[1].DefineLocation!.EndLine);
+        Assert.AreEqual(generateBuilder.Locations[3].FilePath, nodes[1].ImplementationLocation!.FilePath);
+        Assert.AreEqual(generateBuilder.Locations[3].StartLine, nodes[1].ImplementationLocation!.StartLine);
+        Assert.AreEqual(generateBuilder.Locations[3].EndLine, nodes[1].ImplementationLocation!.EndLine);
 
         dbContext.Projects.Remove(nodes[1].Project!);
         await dbContext.SaveChangesAsync();
         Assert.AreEqual(1, await dbContext.Projects.CountAsync());
         Assert.AreEqual(1, await dbContext.Cxx_Nodes.CountAsync());
-        Assert.AreEqual(1, await dbContext.Cxx_HeaderLocations.CountAsync());
-        Assert.AreEqual(1, await dbContext.Cxx_CppLocations.CountAsync());
+        Assert.AreEqual(1, await dbContext.Cxx_DefineLocations.CountAsync());
+        Assert.AreEqual(1, await dbContext.Cxx_ImplementationLocations.CountAsync());
     }
 
     [TestMethod]
@@ -120,31 +118,23 @@ public class NodeTests
             .BuildAsync();
 
         Assert.AreEqual(2, await dbContext.Cxx_Nodes.CountAsync());
-        Assert.AreEqual(1, await dbContext.Cxx_HeaderLocations.CountAsync());
-        Assert.AreEqual(1, await dbContext.Cxx_CppLocations.CountAsync());
-        Assert.AreEqual(1, await dbContext.Cxx_HppLocations.CountAsync());
+        Assert.AreEqual(2, await dbContext.Cxx_DefineLocations.CountAsync());
+        Assert.AreEqual(1, await dbContext.Cxx_ImplementationLocations.CountAsync());
 
         Node[] nodes = await dbContext.Cxx_Nodes
             .Include(item => item.Project)
-            .Include(item => item.HeaderLocation)
-            .Include(item => item.CppLocation)
-            .Include(item => item.HppLocation)
+            .Include(item => item.DefineLocation)
+            .Include(item => item.ImplementationLocation)
             .ToArrayAsync();
 
         Node rootNode = nodes.First(item => item.Spelling == "RootNode1");
-        Node depNode = nodes.First(item => item.Spelling == "DependencyNode");
-        Assert.AreEqual(generateBuilder.Locations[2].FilePath, depNode.HppLocation!.FilePath);
-        Assert.AreEqual(generateBuilder.Locations[2].StartLine, depNode.HppLocation!.StartLine);
-        Assert.AreEqual(generateBuilder.Locations[2].EndLine, depNode.HppLocation!.EndLine);
 
-        dbContext.Cxx_HeaderLocations.Remove(rootNode.HeaderLocation!);
-        dbContext.Cxx_CppLocations.Remove(rootNode.CppLocation!);
-        dbContext.Cxx_HppLocations.Remove(depNode.HppLocation!);
+        dbContext.Cxx_DefineLocations.Remove(rootNode.DefineLocation!);
+        dbContext.Cxx_ImplementationLocations.Remove(rootNode.ImplementationLocation!);
         await dbContext.SaveChangesAsync();
 
         Assert.AreEqual(2, await dbContext.Cxx_Nodes.CountAsync());
-        Assert.AreEqual(0, await dbContext.Cxx_HeaderLocations.CountAsync());
-        Assert.AreEqual(0, await dbContext.Cxx_CppLocations.CountAsync());
-        Assert.AreEqual(0, await dbContext.Cxx_HppLocations.CountAsync());
+        Assert.AreEqual(1, await dbContext.Cxx_DefineLocations.CountAsync());
+        Assert.AreEqual(0, await dbContext.Cxx_ImplementationLocations.CountAsync());
     }
 }

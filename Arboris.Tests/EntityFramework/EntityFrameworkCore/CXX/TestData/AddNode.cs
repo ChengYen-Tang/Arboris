@@ -12,7 +12,7 @@ public partial class GenerateBuilder
         if (Projects.Count < 1)
             throw new InvalidOperationException("Project1 must be generated before RootNode1");
 
-        HeaderLocation hLocation = new()
+        DefineLocation hLocation = new()
         {
             FilePath = "RootNode1.h",
             StartLine = 1,
@@ -23,9 +23,9 @@ public partial class GenerateBuilder
             CursorKindSpelling = "Class",
             Spelling = "RootNode1",
             ProjectId = Projects[0].Id,
-            HeaderLocation = hLocation
+            DefineLocation = hLocation
         };
-        CppLocation cppLocation = new()
+        ImplementationLocation cppLocation = new()
         {
             FilePath = "RootNode1.cpp",
             StartLine = 2,
@@ -37,8 +37,8 @@ public partial class GenerateBuilder
         db.Cxx_Nodes.Add(node);
         Locations.Add(hLocation);
         Locations.Add(cppLocation);
-        db.Cxx_HeaderLocations.Add(hLocation);
-        db.Cxx_CppLocations.Add(cppLocation);
+        db.Cxx_DefineLocations.Add(hLocation);
+        db.Cxx_ImplementationLocations.Add(cppLocation);
 
         return this;
     }
@@ -50,7 +50,7 @@ public partial class GenerateBuilder
         if (Nodes.Count < 1)
             throw new InvalidOperationException("RootNode1 must be generated before RootNode2");
 
-        HeaderLocation hLocation = new()
+        DefineLocation hLocation = new()
         {
             FilePath = "RootNode2.h",
             StartLine = 1,
@@ -61,9 +61,9 @@ public partial class GenerateBuilder
             CursorKindSpelling = "Class",
             Spelling = "RootNode2",
             Project = Projects[1],
-            HeaderLocation = hLocation
+            DefineLocation = hLocation
         };
-        CppLocation cppLocation = new()
+        ImplementationLocation cppLocation = new()
         {
             FilePath = "RootNode2.cpp",
             StartLine = 2,
@@ -75,8 +75,8 @@ public partial class GenerateBuilder
         db.Cxx_Nodes.Add(node);
         Locations.Add(hLocation);
         Locations.Add(cppLocation);
-        db.Cxx_HeaderLocations.Add(hLocation);
-        db.Cxx_CppLocations.Add(cppLocation);
+        db.Cxx_DefineLocations.Add(hLocation);
+        db.Cxx_ImplementationLocations.Add(cppLocation);
 
         return this;
     }
@@ -86,7 +86,7 @@ public partial class GenerateBuilder
         if (Nodes.Count < 1)
             throw new InvalidOperationException("RootNode1 must be generated before MemberNode");
 
-        CppLocation cppLocation = new()
+        ImplementationLocation cppLocation = new()
         {
             FilePath = "MemberNode.cpp",
             StartLine = 1,
@@ -97,9 +97,9 @@ public partial class GenerateBuilder
             CursorKindSpelling = "Function",
             Spelling = "MemberNode",
             ProjectId = Projects[0].Id,
-            CppLocation = cppLocation
+            ImplementationLocation = cppLocation
         };
-        HeaderLocation hLocation = new()
+        DefineLocation hLocation = new()
         {
             FilePath = "MemberNode.h",
             StartLine = 1,
@@ -111,8 +111,8 @@ public partial class GenerateBuilder
         db.Cxx_Nodes.Add(node);
         Locations.Add(hLocation);
         Locations.Add(cppLocation);
-        db.Cxx_HeaderLocations.Add(hLocation);
-        db.Cxx_CppLocations.Add(cppLocation);
+        db.Cxx_DefineLocations.Add(hLocation);
+        db.Cxx_ImplementationLocations.Add(cppLocation);
 
         return node;
     }
@@ -122,7 +122,7 @@ public partial class GenerateBuilder
         if (Nodes.Count < 1)
             throw new InvalidOperationException("RootNode1 must be generated before TypeNode");
 
-        CppLocation cppLocation = new()
+        ImplementationLocation cppLocation = new()
         {
             FilePath = "TypeNode.cpp",
             StartLine = 1,
@@ -133,9 +133,9 @@ public partial class GenerateBuilder
             CursorKindSpelling = "Class",
             Spelling = "TypeNode",
             ProjectId = Projects[0].Id,
-            CppLocation = cppLocation
+            ImplementationLocation = cppLocation
         };
-        HeaderLocation hLocation = new()
+        DefineLocation hLocation = new()
         {
             FilePath = "TypeNode.h",
             StartLine = 1,
@@ -147,8 +147,8 @@ public partial class GenerateBuilder
         db.Cxx_Nodes.Add(node);
         Locations.Add(hLocation);
         Locations.Add(cppLocation);
-        db.Cxx_HeaderLocations.Add(hLocation);
-        db.Cxx_CppLocations.Add(cppLocation);
+        db.Cxx_DefineLocations.Add(hLocation);
+        db.Cxx_ImplementationLocations.Add(cppLocation);
 
         return node;
     }
@@ -158,7 +158,7 @@ public partial class GenerateBuilder
         if (Nodes.Count < 1)
             throw new InvalidOperationException("RootNode1 must be generated before DependencyNode");
 
-        HppLocation hppLocation = new()
+        DefineLocation dLocation = new()
         {
             FilePath = "DependencyNode1.hpp",
             StartLine = 1,
@@ -169,13 +169,13 @@ public partial class GenerateBuilder
             CursorKindSpelling = "Class",
             Spelling = "DependencyNode",
             Project = Projects[0],
-            HppLocation = hppLocation
+            DefineLocation = dLocation
         };
 
         Nodes.Add(node);
         db.Cxx_Nodes.Add(node);
-        Locations.Add(hppLocation);
-        db.Cxx_HppLocations.Add(hppLocation);
+        Locations.Add(dLocation);
+        db.Cxx_DefineLocations.Add(dLocation);
 
         return node;
     }
