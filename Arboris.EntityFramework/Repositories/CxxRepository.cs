@@ -76,6 +76,18 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         return node;
     }
 
+    public async Task<Result> LinkMember(Models.CXX.Location classLocation, Guid memberId)
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        DefineLocation? defineLocation = await dbContext.Cxx_DefineLocations
+            .FirstOrDefaultAsync(item => item.FilePath == classLocation.FilePath && item.StartLine == classLocation.StartLine && item.EndLine == classLocation.EndLine);
+        if (defineLocation is null)
+            return Result.Fail("Class location not found");
+        await dbContext.Cxx_NodeMembers.AddAsync(new() { NodeId = defineLocation.NodeId, MemberId = memberId });
+        await dbContext.SaveChangesAsync();
+        return Result.Ok();
+    }
+
     public async Task<Result> UpdateNodeAsync(Models.CXX.Node node)
     {
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();

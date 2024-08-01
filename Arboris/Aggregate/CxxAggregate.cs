@@ -14,4 +14,7 @@ public class CxxAggregate(ICxxRepository nodeRepository)
 
     public Task<Result> UpdateNodeAsync(Node node)
         => nodeRepository.UpdateNodeAsync(node);
+
+    public Task<Result> LinkMember(Location classLocation, Guid memberId)
+        => nodeRepository.LinkMember(classLocation, memberId);
 }

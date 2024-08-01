@@ -40,11 +40,11 @@ public class Clang : IDisposable
 
     public async Task ScanNode()
     {
-        IReadOnlyList<string> headerFiles = Utils.GetFilesWithExtensions(projectPath, ["*.h", "*.H"]);
+        IReadOnlyList<string> headerFiles = Utils.GetFilesWithExtensions(projectPath, ["*.h"]);
         await ScanNode(headerFiles);
-        IReadOnlyList<string> cppFiles = Utils.GetFilesWithExtensions(projectPath, ["*.cpp", "*.CPP"]);
+        IReadOnlyList<string> cppFiles = Utils.GetFilesWithExtensions(projectPath, ["*.cpp"]);
         await ScanNode(cppFiles);
-        IReadOnlyList<string> hppFiles = Utils.GetFilesWithExtensions(projectPath, ["*.hpp", "*.HPP"]);
+        IReadOnlyList<string> hppFiles = Utils.GetFilesWithExtensions(projectPath, ["*.hpp"]);
         await ScanNode(hppFiles);
     }
 
@@ -83,7 +83,13 @@ public class Clang : IDisposable
                 decl.CanonicalDecl.Extent.End.GetExpansionLocation(out CXFile _, out uint defineEndLine, out uint _, out uint _);
                 using CXString defineFileName = defineFIle.Name;
                 Location defineLocation = new(defineFileName.ToString(), defineStartLine, defineEndLine);
-                if (defineLocation != location)
+
+                if (cursor.CursorKind == CXCursorKind.CXCursor_ClassDecl || defineLocation == location)
+                {
+                    AddNode addNode = new(projectId, cursor.CursorKindSpelling, cursor.Spelling, cXType.ToString(), location, null);
+                    await InsertNode(addNode, decl);
+                }
+                else
                 {
                     logger.LogDebug("DefineLocation-> StartLine: {StartLine}, EndLine: {EndLine}, FilePath: {FilePath}", defineStartLine, defineEndLine, defineFileName);
                     Result<Node> node = await cxxAggregate.GetNodeFromDefineLocation(defineLocation);
@@ -92,23 +98,33 @@ public class Clang : IDisposable
                     Result updateResult = await cxxAggregate.UpdateNodeAsync(node.Value);
                     Trace.Assert(updateResult.IsSuccess, "Update Node failed");
                 }
-                else
-                {
-                    AddNode addNode = new(projectId, cursor.CursorKindSpelling, cursor.Spelling, cXType.ToString(), defineLocation, location);
-                    logger.LogDebug("Add Node-> ProjectId: {ProjectId}, CursorKindSpelling: {CursorKindSpelling}, Spelling: {Spelling}", projectId, cursor.CursorKindSpelling, cursor.Spelling);
-                    await cxxAggregate.AddNodeAsync(addNode);
-                }
             }
             else
             {
                 AddNode addNode = new(projectId, cursor.CursorKindSpelling, cursor.Spelling, cXType.ToString(), null, location);
-                logger.LogDebug("Add Node-> ProjectId: {ProjectId}, CursorKindSpelling: {CursorKindSpelling}, Spelling: {Spelling}", projectId, cursor.CursorKindSpelling, cursor.Spelling);
-                await cxxAggregate.AddNodeAsync(addNode);
+                await InsertNode(addNode, null);
             }
         }
 
         foreach (var child in cursor.CursorChildren)
             await InsertNode(child);
+    }
+
+    private async Task InsertNode(AddNode addNode, Decl? decl)
+    {
+        logger.LogDebug("Add Node-> ProjectId: {ProjectId}, CursorKindSpelling: {CursorKindSpelling}, Spelling: {Spelling}", projectId, addNode.CursorKindSpelling, addNode.Spelling);
+        Guid nodeId = await cxxAggregate.AddNodeAsync(addNode);
+        if (decl is null)
+            return;
+        if (decl.LexicalDeclContext is not null && ((Decl)decl.LexicalDeclContext).CursorKind == CXCursorKind.CXCursor_ClassDecl)
+        {
+            ((Decl)decl.LexicalDeclContext).Extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint _, out uint _);
+            ((Decl)decl.LexicalDeclContext).Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint _, out uint _);
+            using CXString fileName = file.Name;
+            Location classLocation = new(fileName.ToString(), startLine, endLine);
+            Result result = await cxxAggregate.LinkMember(classLocation, nodeId);
+            Trace.Assert(result.IsSuccess, "ClassLocation not found");
+        }
     }
 
     protected virtual void Dispose(bool disposing)
