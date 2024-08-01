@@ -30,6 +30,7 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
 
         Node node = new()
         {
+            ProjectId = addNode.ProjectId,
             CursorKindSpelling = addNode.CursorKindSpelling,
             Spelling = addNode.Spelling,
             CxType = addNode.CxType,
@@ -63,6 +64,7 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             domainImplementationLocation = new(defineLocation.Node.ImplementationLocation.FilePath, defineLocation.Node.ImplementationLocation.StartLine, defineLocation.Node.ImplementationLocation.EndLine);
         Models.CXX.Node node = new()
         {
+            ProjectId = defineLocation.Node.ProjectId,
             Id = defineLocation.Node.Id,
             CursorKindSpelling = defineLocation.Node.CursorKindSpelling,
             Spelling = defineLocation.Node.Spelling,
@@ -79,6 +81,7 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
         Node dbNode = new()
         {
+            ProjectId = node.ProjectId,
             Id = node.Id,
             CursorKindSpelling = node.CursorKindSpelling,
             Spelling = node.Spelling,

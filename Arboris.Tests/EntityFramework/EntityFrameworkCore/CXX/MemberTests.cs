@@ -1,7 +1,6 @@
 ﻿using Arboris.EntityFramework.EntityFrameworkCore;
 using Arboris.EntityFramework.EntityFrameworkCore.CXX;
 using Arboris.Tests.EntityFramework.CXX.TestData;
-using Arboris.Tests.EntityFramework.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace Arboris.Tests.EntityFramework.EntityFrameworkCore.CXX;

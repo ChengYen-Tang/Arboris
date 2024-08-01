@@ -45,20 +45,20 @@ namespace Arboris.EntityFramework.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Cxx_CppLocations",
+                name: "Cxx_DefineLocations",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     FilePath = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    StartLine = table.Column<int>(type: "int", nullable: false),
-                    EndLine = table.Column<int>(type: "int", nullable: false),
+                    StartLine = table.Column<long>(type: "bigint", nullable: false),
+                    EndLine = table.Column<long>(type: "bigint", nullable: false),
                     NodeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Cxx_CppLocations", x => x.Id);
+                    table.PrimaryKey("PK_Cxx_DefineLocations", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Cxx_CppLocations_Cxx_Nodes_NodeId",
+                        name: "FK_Cxx_DefineLocations_Cxx_Nodes_NodeId",
                         column: x => x.NodeId,
                         principalTable: "Cxx_Nodes",
                         principalColumn: "Id",
@@ -66,41 +66,20 @@ namespace Arboris.EntityFramework.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Cxx_HeaderLocations",
+                name: "Cxx_ImplementationLocations",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     FilePath = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    StartLine = table.Column<int>(type: "int", nullable: false),
-                    EndLine = table.Column<int>(type: "int", nullable: false),
+                    StartLine = table.Column<long>(type: "bigint", nullable: false),
+                    EndLine = table.Column<long>(type: "bigint", nullable: false),
                     NodeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Cxx_HeaderLocations", x => x.Id);
+                    table.PrimaryKey("PK_Cxx_ImplementationLocations", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Cxx_HeaderLocations_Cxx_Nodes_NodeId",
-                        column: x => x.NodeId,
-                        principalTable: "Cxx_Nodes",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Cxx_HppLocations",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    FilePath = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    StartLine = table.Column<int>(type: "int", nullable: false),
-                    EndLine = table.Column<int>(type: "int", nullable: false),
-                    NodeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Cxx_HppLocations", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Cxx_HppLocations_Cxx_Nodes_NodeId",
+                        name: "FK_Cxx_ImplementationLocations_Cxx_Nodes_NodeId",
                         column: x => x.NodeId,
                         principalTable: "Cxx_Nodes",
                         principalColumn: "Id",
@@ -180,20 +159,14 @@ namespace Arboris.EntityFramework.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Cxx_CppLocations_NodeId",
-                table: "Cxx_CppLocations",
+                name: "IX_Cxx_DefineLocations_NodeId",
+                table: "Cxx_DefineLocations",
                 column: "NodeId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Cxx_HeaderLocations_NodeId",
-                table: "Cxx_HeaderLocations",
-                column: "NodeId",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Cxx_HppLocations_NodeId",
-                table: "Cxx_HppLocations",
+                name: "IX_Cxx_ImplementationLocations_NodeId",
+                table: "Cxx_ImplementationLocations",
                 column: "NodeId",
                 unique: true);
 
@@ -225,13 +198,10 @@ namespace Arboris.EntityFramework.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "Cxx_CppLocations");
+                name: "Cxx_DefineLocations");
 
             migrationBuilder.DropTable(
-                name: "Cxx_HeaderLocations");
-
-            migrationBuilder.DropTable(
-                name: "Cxx_HppLocations");
+                name: "Cxx_ImplementationLocations");
 
             migrationBuilder.DropTable(
                 name: "Cxx_NodeDependencies");

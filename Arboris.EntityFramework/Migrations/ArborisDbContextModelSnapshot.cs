@@ -22,14 +22,14 @@ namespace Arboris.EntityFramework.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("Arboris.EntityFramework.EntityFrameworkCore.CXX.CppLocation", b =>
+            modelBuilder.Entity("Arboris.EntityFramework.EntityFrameworkCore.CXX.DefineLocation", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("EndLine")
-                        .HasColumnType("int");
+                    b.Property<long>("EndLine")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("FilePath")
                         .IsRequired()
@@ -38,25 +38,25 @@ namespace Arboris.EntityFramework.Migrations
                     b.Property<Guid>("NodeId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("StartLine")
-                        .HasColumnType("int");
+                    b.Property<long>("StartLine")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
                     b.HasIndex("NodeId")
                         .IsUnique();
 
-                    b.ToTable("Cxx_CppLocations");
+                    b.ToTable("Cxx_DefineLocations");
                 });
 
-            modelBuilder.Entity("Arboris.EntityFramework.EntityFrameworkCore.CXX.HeaderLocation", b =>
+            modelBuilder.Entity("Arboris.EntityFramework.EntityFrameworkCore.CXX.ImplementationLocation", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("EndLine")
-                        .HasColumnType("int");
+                    b.Property<long>("EndLine")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("FilePath")
                         .IsRequired()
@@ -65,42 +65,15 @@ namespace Arboris.EntityFramework.Migrations
                     b.Property<Guid>("NodeId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("StartLine")
-                        .HasColumnType("int");
+                    b.Property<long>("StartLine")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
                     b.HasIndex("NodeId")
                         .IsUnique();
 
-                    b.ToTable("Cxx_HeaderLocations");
-                });
-
-            modelBuilder.Entity("Arboris.EntityFramework.EntityFrameworkCore.CXX.HppLocation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("EndLine")
-                        .HasColumnType("int");
-
-                    b.Property<string>("FilePath")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("NodeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("StartLine")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("NodeId")
-                        .IsUnique();
-
-                    b.ToTable("Cxx_HppLocations");
+                    b.ToTable("Cxx_ImplementationLocations");
                 });
 
             modelBuilder.Entity("Arboris.EntityFramework.EntityFrameworkCore.CXX.Node", b =>
@@ -194,33 +167,22 @@ namespace Arboris.EntityFramework.Migrations
                     b.ToTable("Projects");
                 });
 
-            modelBuilder.Entity("Arboris.EntityFramework.EntityFrameworkCore.CXX.CppLocation", b =>
+            modelBuilder.Entity("Arboris.EntityFramework.EntityFrameworkCore.CXX.DefineLocation", b =>
                 {
                     b.HasOne("Arboris.EntityFramework.EntityFrameworkCore.CXX.Node", "Node")
-                        .WithOne("CppLocation")
-                        .HasForeignKey("Arboris.EntityFramework.EntityFrameworkCore.CXX.CppLocation", "NodeId")
+                        .WithOne("DefineLocation")
+                        .HasForeignKey("Arboris.EntityFramework.EntityFrameworkCore.CXX.DefineLocation", "NodeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Node");
                 });
 
-            modelBuilder.Entity("Arboris.EntityFramework.EntityFrameworkCore.CXX.HeaderLocation", b =>
+            modelBuilder.Entity("Arboris.EntityFramework.EntityFrameworkCore.CXX.ImplementationLocation", b =>
                 {
                     b.HasOne("Arboris.EntityFramework.EntityFrameworkCore.CXX.Node", "Node")
-                        .WithOne("HeaderLocation")
-                        .HasForeignKey("Arboris.EntityFramework.EntityFrameworkCore.CXX.HeaderLocation", "NodeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Node");
-                });
-
-            modelBuilder.Entity("Arboris.EntityFramework.EntityFrameworkCore.CXX.HppLocation", b =>
-                {
-                    b.HasOne("Arboris.EntityFramework.EntityFrameworkCore.CXX.Node", "Node")
-                        .WithOne("HppLocation")
-                        .HasForeignKey("Arboris.EntityFramework.EntityFrameworkCore.CXX.HppLocation", "NodeId")
+                        .WithOne("ImplementationLocation")
+                        .HasForeignKey("Arboris.EntityFramework.EntityFrameworkCore.CXX.ImplementationLocation", "NodeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -297,13 +259,11 @@ namespace Arboris.EntityFramework.Migrations
 
             modelBuilder.Entity("Arboris.EntityFramework.EntityFrameworkCore.CXX.Node", b =>
                 {
-                    b.Navigation("CppLocation");
+                    b.Navigation("DefineLocation");
 
                     b.Navigation("Dependencies");
 
-                    b.Navigation("HeaderLocation");
-
-                    b.Navigation("HppLocation");
+                    b.Navigation("ImplementationLocation");
 
                     b.Navigation("Members");
 
