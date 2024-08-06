@@ -1,11 +1,16 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
 namespace Arboris.EntityFramework.EntityFrameworkCore.CXX;
 
+[Index(nameof(FilePath), nameof(StartLine))]
+[Index(nameof(FilePath), nameof(StartLine), nameof(EndLine))]
 public class DefineLocation : Location
 {
 }
 
+[Index(nameof(FilePath), nameof(StartLine))]
+[Index(nameof(FilePath), nameof(StartLine), nameof(EndLine))]
 public class ImplementationLocation : Location
 {
 }

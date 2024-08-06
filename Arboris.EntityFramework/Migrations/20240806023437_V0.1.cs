@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -49,7 +50,7 @@ namespace Arboris.EntityFramework.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    FilePath = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FilePath = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     StartLine = table.Column<long>(type: "bigint", nullable: false),
                     EndLine = table.Column<long>(type: "bigint", nullable: false),
                     NodeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
@@ -70,7 +71,7 @@ namespace Arboris.EntityFramework.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    FilePath = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    FilePath = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     StartLine = table.Column<long>(type: "bigint", nullable: false),
                     EndLine = table.Column<long>(type: "bigint", nullable: false),
                     NodeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
@@ -101,13 +102,13 @@ namespace Arboris.EntityFramework.Migrations
                         column: x => x.FromId,
                         principalTable: "Cxx_Nodes",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.NoAction);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Cxx_NodeDependencies_Cxx_Nodes_NodeId",
                         column: x => x.NodeId,
                         principalTable: "Cxx_Nodes",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.NoAction);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -125,13 +126,13 @@ namespace Arboris.EntityFramework.Migrations
                         column: x => x.MemberId,
                         principalTable: "Cxx_Nodes",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.NoAction);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Cxx_NodeMembers_Cxx_Nodes_NodeId",
                         column: x => x.NodeId,
                         principalTable: "Cxx_Nodes",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.NoAction);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -149,20 +150,40 @@ namespace Arboris.EntityFramework.Migrations
                         column: x => x.NodeId,
                         principalTable: "Cxx_Nodes",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.NoAction);
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Cxx_NodeTypes_Cxx_Nodes_TypeId",
                         column: x => x.TypeId,
                         principalTable: "Cxx_Nodes",
                         principalColumn: "Id",
-                        onDelete: ReferentialAction.NoAction);
+                        onDelete: ReferentialAction.Restrict);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Cxx_DefineLocations_FilePath_StartLine",
+                table: "Cxx_DefineLocations",
+                columns: new[] { "FilePath", "StartLine" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Cxx_DefineLocations_FilePath_StartLine_EndLine",
+                table: "Cxx_DefineLocations",
+                columns: new[] { "FilePath", "StartLine", "EndLine" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Cxx_DefineLocations_NodeId",
                 table: "Cxx_DefineLocations",
                 column: "NodeId",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Cxx_ImplementationLocations_FilePath_StartLine",
+                table: "Cxx_ImplementationLocations",
+                columns: new[] { "FilePath", "StartLine" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Cxx_ImplementationLocations_FilePath_StartLine_EndLine",
+                table: "Cxx_ImplementationLocations",
+                columns: new[] { "FilePath", "StartLine", "EndLine" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Cxx_ImplementationLocations_NodeId",
@@ -173,14 +194,12 @@ namespace Arboris.EntityFramework.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_Cxx_NodeDependencies_FromId",
                 table: "Cxx_NodeDependencies",
-                column: "FromId",
-                unique: true);
+                column: "FromId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Cxx_NodeMembers_MemberId",
                 table: "Cxx_NodeMembers",
-                column: "MemberId",
-                unique: true);
+                column: "MemberId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Cxx_Nodes_ProjectId",
@@ -190,8 +209,7 @@ namespace Arboris.EntityFramework.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_Cxx_NodeTypes_TypeId",
                 table: "Cxx_NodeTypes",
-                column: "TypeId",
-                unique: true);
+                column: "TypeId");
         }
 
         /// <inheritdoc />

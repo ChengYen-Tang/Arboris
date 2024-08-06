@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Arboris.EntityFramework.Migrations
 {
     [DbContext(typeof(ArborisDbContext))]
-    [Migration("20240731091934_V0.1")]
+    [Migration("20240806023437_V0.1")]
     partial class V01
     {
         /// <inheritdoc />
@@ -36,7 +36,7 @@ namespace Arboris.EntityFramework.Migrations
 
                     b.Property<string>("FilePath")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<Guid>("NodeId")
                         .HasColumnType("uniqueidentifier");
@@ -48,6 +48,10 @@ namespace Arboris.EntityFramework.Migrations
 
                     b.HasIndex("NodeId")
                         .IsUnique();
+
+                    b.HasIndex("FilePath", "StartLine");
+
+                    b.HasIndex("FilePath", "StartLine", "EndLine");
 
                     b.ToTable("Cxx_DefineLocations");
                 });
@@ -63,7 +67,7 @@ namespace Arboris.EntityFramework.Migrations
 
                     b.Property<string>("FilePath")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<Guid>("NodeId")
                         .HasColumnType("uniqueidentifier");
@@ -75,6 +79,10 @@ namespace Arboris.EntityFramework.Migrations
 
                     b.HasIndex("NodeId")
                         .IsUnique();
+
+                    b.HasIndex("FilePath", "StartLine");
+
+                    b.HasIndex("FilePath", "StartLine", "EndLine");
 
                     b.ToTable("Cxx_ImplementationLocations");
                 });
@@ -114,8 +122,7 @@ namespace Arboris.EntityFramework.Migrations
 
                     b.HasKey("NodeId", "FromId");
 
-                    b.HasIndex("FromId")
-                        .IsUnique();
+                    b.HasIndex("FromId");
 
                     b.ToTable("Cxx_NodeDependencies");
                 });
@@ -130,8 +137,7 @@ namespace Arboris.EntityFramework.Migrations
 
                     b.HasKey("NodeId", "MemberId");
 
-                    b.HasIndex("MemberId")
-                        .IsUnique();
+                    b.HasIndex("MemberId");
 
                     b.ToTable("Cxx_NodeMembers");
                 });
@@ -146,8 +152,7 @@ namespace Arboris.EntityFramework.Migrations
 
                     b.HasKey("NodeId", "TypeId");
 
-                    b.HasIndex("TypeId")
-                        .IsUnique();
+                    b.HasIndex("TypeId");
 
                     b.ToTable("Cxx_NodeTypes");
                 });
@@ -206,9 +211,9 @@ namespace Arboris.EntityFramework.Migrations
             modelBuilder.Entity("Arboris.EntityFramework.EntityFrameworkCore.CXX.NodeDependency", b =>
                 {
                     b.HasOne("Arboris.EntityFramework.EntityFrameworkCore.CXX.Node", "From")
-                        .WithOne()
-                        .HasForeignKey("Arboris.EntityFramework.EntityFrameworkCore.CXX.NodeDependency", "FromId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .WithMany()
+                        .HasForeignKey("FromId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Arboris.EntityFramework.EntityFrameworkCore.CXX.Node", "Node")
@@ -225,9 +230,9 @@ namespace Arboris.EntityFramework.Migrations
             modelBuilder.Entity("Arboris.EntityFramework.EntityFrameworkCore.CXX.NodeMember", b =>
                 {
                     b.HasOne("Arboris.EntityFramework.EntityFrameworkCore.CXX.Node", "Member")
-                        .WithOne()
-                        .HasForeignKey("Arboris.EntityFramework.EntityFrameworkCore.CXX.NodeMember", "MemberId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .WithMany()
+                        .HasForeignKey("MemberId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Arboris.EntityFramework.EntityFrameworkCore.CXX.Node", "Node")
@@ -250,9 +255,9 @@ namespace Arboris.EntityFramework.Migrations
                         .IsRequired();
 
                     b.HasOne("Arboris.EntityFramework.EntityFrameworkCore.CXX.Node", "Type")
-                        .WithOne()
-                        .HasForeignKey("Arboris.EntityFramework.EntityFrameworkCore.CXX.NodeType", "TypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .WithMany()
+                        .HasForeignKey("TypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Node");

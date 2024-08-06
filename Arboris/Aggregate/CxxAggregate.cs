@@ -15,6 +15,12 @@ public class CxxAggregate(ICxxRepository nodeRepository)
     public Task<Result> UpdateNodeAsync(Node node)
         => nodeRepository.UpdateNodeAsync(node);
 
-    public Task<Result> LinkMember(Location classLocation, Guid memberId)
-        => nodeRepository.LinkMember(classLocation, memberId);
+    public Task<Result> LinkMemberAsync(Location classLocation, Guid memberId)
+        => nodeRepository.LinkMemberAsync(classLocation, memberId);
+
+    public Task<Result> LinkDependencyAsync(Location nodeLocation, Location fromLocation)
+        => nodeRepository.LinkDependencyAsync(nodeLocation, fromLocation);
+
+    public Task<Result> LinkDependencyCallExprOperatorEqualAsync(Location nodeLocation, Location fromLocation)
+        => nodeRepository.LinkDependencyCallExprOperatorEqualAsync(nodeLocation, fromLocation);
 }

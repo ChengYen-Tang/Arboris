@@ -54,30 +54,36 @@ public class ArborisDbContext(DbContextOptions<ArborisDbContext> options) : DbCo
         {
             entity.HasOne(nm => nm.Node)
                 .WithMany(n => n.Members)
-                .HasForeignKey(nm => nm.NodeId);
+                .HasForeignKey(nm => nm.NodeId)
+                .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(nm => nm.Member)
-                .WithOne()
-                .HasForeignKey<NodeMember>(c => c.MemberId);
+                .WithMany()
+                .HasForeignKey(c => c.MemberId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<NodeType>(entity =>
         {
             entity.HasOne(nt => nt.Node)
                 .WithMany(n => n.Types)
-                .HasForeignKey(nt => nt.NodeId);
+                .HasForeignKey(nt => nt.NodeId)
+                .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(nt => nt.Type)
-                .WithOne()
-                .HasForeignKey<NodeType>(c => c.TypeId);
+                .WithMany()
+                .HasForeignKey(c => c.TypeId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<NodeDependency>(entity =>
         {
             entity.HasOne(d => d.Node)
                 .WithMany(n => n.Dependencies)
-                .HasForeignKey(d => d.NodeId);
+                .HasForeignKey(d => d.NodeId)
+                .OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(d => d.From)
-                .WithOne()
-                .HasForeignKey<NodeDependency>(c => c.FromId);
+                .WithMany()
+                .HasForeignKey(c => c.FromId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }
