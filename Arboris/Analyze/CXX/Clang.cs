@@ -78,7 +78,7 @@ public class Clang : IDisposable
 
             foreach (var cursor in tu.TranslationUnitDecl.CursorChildren)
             {
-                await LinkNode(cursor);
+                await LinkNodeDependency(cursor);
             }
         }
     }
@@ -131,7 +131,7 @@ public class Clang : IDisposable
             await ScanAndInsertNode(child);
     }
 
-    private async Task LinkNode(Cursor cursor, Location? compoundStmtLocation = null)
+    private async Task LinkNodeDependency(Cursor cursor, Location? compoundStmtLocation = null)
     {
         if (!cursor.Location.IsFromMainFile)
             return;
@@ -142,7 +142,7 @@ public class Clang : IDisposable
         foreach (var child in cursor.CursorChildren)
         {
             if (compoundStmtLocation is not null)
-                await LinkNode(child, compoundStmtLocation);
+                await LinkNodeDependency(child, compoundStmtLocation);
             else if (cursor.CursorKind == CXCursorKind.CXCursor_CompoundStmt)
             {
                 CompoundStmt stmt = (cursor as CompoundStmt)!;
@@ -152,10 +152,10 @@ public class Clang : IDisposable
                 decl.Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint _, out uint _);
                 using CXString fileName = file.Name;
                 Location csLocation = new(fileName.ToString(), startLine, endLine);
-                await LinkNode(child, csLocation);
+                await LinkNodeDependency(child, csLocation);
             }
             else
-                await LinkNode(child);
+                await LinkNodeDependency(child);
         }
     }
 
@@ -196,9 +196,8 @@ public class Clang : IDisposable
             logger.LogDebug("    CXCursor_TypeRef -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, fileName);
             Result result = await cxxAggregate.LinkDependencyAsync(compoundStmtLocation, location);
             PrintErrorMessage(result);
-            //Trace.Assert(result.IsSuccess, "LinkDependencyTyprRefAsync failed");
         }
-        if (cursor.CursorKind == CXCursorKind.CXCursor_CallExpr)
+        else if (cursor.CursorKind == CXCursorKind.CXCursor_CallExpr)
         {
             if (cursor is not CallExpr callExpr)
                 return;
@@ -219,15 +218,33 @@ public class Clang : IDisposable
                 logger.LogDebug("    CXCursor_CallExpr -> operator= -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, fileName);
                 Result result = await cxxAggregate.LinkDependencyCallExprOperatorEqualAsync(compoundStmtLocation, location);
                 PrintErrorMessage(result);
-                //Trace.Assert(result.IsSuccess, "LinkDependencyCallExprOperatorEqualAsync failed");
             }
             else
             {
                 logger.LogDebug("    CXCursor_CallExpr -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, fileName);
                 Result result = await cxxAggregate.LinkDependencyAsync(compoundStmtLocation, location);
                 PrintErrorMessage(result);
-                //Trace.Assert(result.IsSuccess, "LinkDependencyAsync failed");
             }
+        }
+        else if (cursor.CursorKind == CXCursorKind.CXCursor_MemberRefExpr)
+        {
+            if (cursor is not MemberExpr memberExpr)
+                return;
+
+            if (memberExpr.MemberDecl is null)
+                return;
+
+            memberExpr.MemberDecl.Extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint _, out uint _);
+            memberExpr.MemberDecl.Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint _, out uint _);
+            using CXString fileName = file.Name;
+            Location location = new(fileName.ToString(), startLine, endLine);
+
+            if (!VerifyLocation(location) || !VerifyFromNodeOutOfSelfNode(compoundStmtLocation, location))
+                return;
+
+            logger.LogDebug("    CXCursor_MemberRefExpr -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, fileName);
+            Result result = await cxxAggregate.LinkDependencyAsync(compoundStmtLocation, location);
+            PrintErrorMessage(result);
         }
     }
 
