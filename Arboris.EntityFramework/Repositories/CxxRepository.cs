@@ -182,7 +182,7 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             .Select(item => item.Id)
             .ToArrayAsync();
 
-        if (haveMembers.Any() && noMembers.Any())
+        if (haveMembers.Length != 0 && noMembers.Length != 0)
         {
             NodeType[] removeTypes = await dbContext.Cxx_NodeTypes
                 .Where(item => noMembers.Contains(item.TypeId))
