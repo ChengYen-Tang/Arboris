@@ -18,7 +18,7 @@ public class Clang : IDisposable
     private bool disposedValue;
     private readonly Index index;
     private readonly string[] clangArgs;
-    private readonly CXCursorKind[] validCursorKind = [
+    private static readonly CXCursorKind[] validCursorKind = [
         CXCursorKind.CXCursor_ClassDecl,
         CXCursorKind.CXCursor_CXXMethod,
         CXCursorKind.CXCursor_Constructor,
@@ -27,6 +27,9 @@ public class Clang : IDisposable
         CXCursorKind.CXCursor_FunctionDecl,
         CXCursorKind.CXCursor_StructDecl,
         CXCursorKind.CXCursor_TypedefDecl];
+    private static readonly CXCursorKind[] validMemberCursorKind = [
+        CXCursorKind.CXCursor_FieldDecl,
+        CXCursorKind.CXCursor_CXXMethod];
 
     public Clang(Guid projectId, string projectPath, CxxAggregate cxxAggregate, ILogger<Clang> logger)
     {
@@ -40,7 +43,7 @@ public class Clang : IDisposable
         clangArgs = [.. args];
     }
 
-    public async Task ScanNode()
+    public async Task Scan()
     {
         IReadOnlyList<string> headerFiles = Utils.GetFilesWithExtensions(projectPath, ["*.h"]);
         IReadOnlyList<string> cppFiles = Utils.GetFilesWithExtensions(projectPath, ["*.cpp"]);
@@ -53,6 +56,20 @@ public class Clang : IDisposable
         await ScanLink(headerFiles);
         await ScanLink(cppFiles);
         await ScanLink(hppFiles);
+
+        await RemoveTypeDeclarations();
+    }
+
+    private async Task RemoveTypeDeclarations()
+    {
+        Result<NodeInfo[]> nodeInfosResult = await cxxAggregate.GetDistinctClassAndStructNodeInfosAsync();
+        foreach (var nodeInfo in nodeInfosResult.Value)
+        {
+            Result result = await cxxAggregate.MoveTypeDeclarationTypeAsync(nodeInfo);
+            Trace.Assert(result.IsSuccess, "MoveTypeDeclarationDepandencyAsync failed");
+        }
+
+        await cxxAggregate.RemoveTypeDeclarations();
     }
 
     private async Task ScanNode(IReadOnlyList<string> headerFiles)
@@ -79,11 +96,12 @@ public class Clang : IDisposable
             foreach (var cursor in tu.TranslationUnitDecl.CursorChildren)
             {
                 await LinkNodeDependency(cursor);
+                await ScanAndLinkNodeType(cursor);
             }
         }
     }
 
-    private async Task ScanAndInsertNode(Cursor cursor)
+    private async Task ScanAndInsertNode(Cursor cursor, string? nameSpace = null)
     {
         if (!cursor.Location.IsFromMainFile)
             return;
@@ -107,7 +125,7 @@ public class Clang : IDisposable
 
                 if (cursor.CursorKind == CXCursorKind.CXCursor_ClassDecl || defineLocation == location)
                 {
-                    AddNode addNode = new(projectId, cursor.CursorKindSpelling, cursor.Spelling, cXType.ToString(), location, null);
+                    AddNode addNode = new(projectId, cursor.CursorKindSpelling, cursor.Spelling, cXType.ToString(), nameSpace, location, null);
                     await InsertNode(addNode, decl);
                 }
                 else
@@ -122,13 +140,40 @@ public class Clang : IDisposable
             }
             else
             {
-                AddNode addNode = new(projectId, cursor.CursorKindSpelling, cursor.Spelling, cXType.ToString(), null, location);
+                AddNode addNode = new(projectId, cursor.CursorKindSpelling, cursor.Spelling, cXType.ToString(), nameSpace, null, location);
                 await InsertNode(addNode, null);
             }
         }
 
+        if (cursor.CursorKind == CXCursorKind.CXCursor_Namespace)
+            nameSpace = cursor.Spelling;
+
         foreach (var child in cursor.CursorChildren)
-            await ScanAndInsertNode(child);
+            await ScanAndInsertNode(child, nameSpace);
+    }
+
+    private async Task ScanAndLinkNodeType(Cursor cursor)
+    {
+        if (!cursor.Location.IsFromMainFile)
+            return;
+
+        cursor.Extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint startColumn, out uint _);
+        cursor.Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint endColumn, out uint _);
+        using CXString fileName = file.Name;
+        Location location = new(fileName.ToString(), startLine, endLine);
+        logger.LogDebug("Location-> StartLine: {StartLine}, EndLine: {EndLine}, StartColumn: {StartColumn}, EndColumn: {EndColumn}, FileName: {FileName}", startLine, endLine, startColumn, endColumn, fileName);
+
+        if (validMemberCursorKind.Contains(cursor.CursorKind) && cursor is Decl decl)
+        {
+            decl.CanonicalDecl.Extent.Start.GetExpansionLocation(out CXFile defineFIle, out uint defineStartLine, out uint _, out uint _);
+            decl.CanonicalDecl.Extent.End.GetExpansionLocation(out CXFile _, out uint defineEndLine, out uint _, out uint _);
+            using CXString defineFileName = defineFIle.Name;
+            Location defineLocation = new(defineFileName.ToString(), defineStartLine, defineEndLine);
+            await ScanAndLinkNodeType(cursor, defineLocation, defineLocation != location);
+        }
+
+        foreach (var child in cursor.CursorChildren)
+            await ScanAndLinkNodeType(child);
     }
 
     private async Task LinkNodeDependency(Cursor cursor, Location? compoundStmtLocation = null)
@@ -246,6 +291,28 @@ public class Clang : IDisposable
             Result result = await cxxAggregate.LinkDependencyAsync(compoundStmtLocation, location);
             PrintErrorMessage(result);
         }
+    }
+
+    private async Task ScanAndLinkNodeType(Cursor cursor, Location defineLocation, bool isImplementation = false)
+    {
+        if (isImplementation && cursor is CompoundStmt)
+            return;
+
+        if (cursor.CursorKind == CXCursorKind.CXCursor_TypeRef)
+        {
+            if (cursor is not Ref refCursor)
+                return;
+
+            refCursor.Referenced.Extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint _, out uint _);
+            refCursor.Referenced.Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint _, out uint _);
+            using CXString fileName = file.Name;
+            Location location = new(fileName.ToString(), startLine, endLine);
+            if (VerifyLocation(location))
+                await cxxAggregate.LinkTypeAsync(defineLocation, location, isImplementation);
+        }
+
+        foreach (var child in cursor.CursorChildren)
+            await ScanAndLinkNodeType(child, defineLocation, isImplementation);
     }
 
     private static bool VerifyLocation(Location location)

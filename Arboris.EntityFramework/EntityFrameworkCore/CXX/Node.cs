@@ -9,6 +9,7 @@ public class Node
     public string? CursorKindSpelling { get; set; }
     public string? Spelling { get; set; }
     public string? CxType { get; set; }
+    public string? NameSpace { get; set; }
 
     [Required]
     public Guid ProjectId { get; set; }

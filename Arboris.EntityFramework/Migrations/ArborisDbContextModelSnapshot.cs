@@ -96,6 +96,9 @@ namespace Arboris.EntityFramework.Migrations
                     b.Property<string>("CxType")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("NameSpace")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uniqueidentifier");
 

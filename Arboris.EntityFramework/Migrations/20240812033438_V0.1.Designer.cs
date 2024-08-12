@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Arboris.EntityFramework.Migrations
 {
     [DbContext(typeof(ArborisDbContext))]
-    [Migration("20240806023437_V0.1")]
+    [Migration("20240812033438_V0.1")]
     partial class V01
     {
         /// <inheritdoc />
@@ -97,6 +97,9 @@ namespace Arboris.EntityFramework.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("CxType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NameSpace")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("ProjectId")

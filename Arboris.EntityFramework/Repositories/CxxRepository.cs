@@ -34,6 +34,7 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             CursorKindSpelling = addNode.CursorKindSpelling,
             Spelling = addNode.Spelling,
             CxType = addNode.CxType,
+            NameSpace = addNode.NameSpace,
             DefineLocation = defineLocation,
             ImplementationLocation = implementationLocation
         };
@@ -43,6 +44,15 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         await dbContext.SaveChangesAsync();
 
         return node.Id;
+    }
+
+    public async Task<Result<Models.CXX.NodeInfo[]>> GetDistinctClassAndStructNodeInfosAsync()
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        return await dbContext.Cxx_Nodes.Where(item => item.CursorKindSpelling == "ClassDecl" || item.CursorKindSpelling == "StructDecl")
+            .Select(item => new Models.CXX.NodeInfo(item.CursorKindSpelling, item.Spelling, item.CxType, item.NameSpace))
+            .Distinct()
+            .ToArrayAsync();
     }
 
     public async Task<Result<Models.CXX.Node>> GetNodeFromDefineLocation(Models.CXX.Location location)
@@ -69,6 +79,7 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             CursorKindSpelling = defineLocation.Node.CursorKindSpelling,
             Spelling = defineLocation.Node.Spelling,
             CxType = defineLocation.Node.CxType,
+            NameSpace = defineLocation.Node.NameSpace,
             DefineLocation = domainDefineLocation,
             ImplementationLocation = domainImplementationLocation
         };
@@ -79,34 +90,18 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
     public async Task<Result> LinkDependencyAsync(Models.CXX.Location nodeLocation, Models.CXX.Location fromLocation)
     {
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
-        Guid NodeId = await dbContext.Cxx_DefineLocations
-            .Where(item => item.FilePath == nodeLocation.FilePath && item.StartLine == nodeLocation.StartLine && item.EndLine == nodeLocation.EndLine)
-            .Select(item => item.NodeId)
-            .FirstOrDefaultAsync();
-        if (NodeId == Guid.Empty)
-            NodeId = await dbContext.Cxx_ImplementationLocations
-                .Where(item => item.FilePath == nodeLocation.FilePath && item.StartLine == nodeLocation.StartLine && item.EndLine == nodeLocation.EndLine)
-                .Select(item => item.NodeId)
-                .FirstOrDefaultAsync();
-        if (NodeId == Guid.Empty)
+        Result<Guid> NodeId = await GetNodeIdFromLocationAsync(nodeLocation);
+        if (NodeId.IsFailed)
             return Result.Fail("Node location not found");
 
-        Guid FromId = await dbContext.Cxx_DefineLocations
-            .Where(item => item.FilePath == fromLocation.FilePath && item.StartLine == fromLocation.StartLine && item.EndLine == fromLocation.EndLine)
-            .Select(item => item.NodeId)
-            .FirstOrDefaultAsync();
-        if (FromId == Guid.Empty)
-            FromId = await dbContext.Cxx_ImplementationLocations
-                .Where(item => item.FilePath == fromLocation.FilePath && item.StartLine == fromLocation.StartLine && item.EndLine == fromLocation.EndLine)
-                .Select(item => item.NodeId)
-                .FirstOrDefaultAsync();
-        if (FromId == Guid.Empty)
+        Result<Guid> FromId = await GetNodeIdFromLocationAsync(fromLocation);
+        if (FromId.IsFailed)
             return Result.Fail("From location not found");
 
-        if (await dbContext.Cxx_NodeDependencies.AnyAsync(item => item.NodeId == NodeId && item.FromId == FromId))
+        if (await dbContext.Cxx_NodeDependencies.AnyAsync(item => item.NodeId == NodeId.Value && item.FromId == FromId.Value))
             return Result.Ok();
 
-        await dbContext.Cxx_NodeDependencies.AddAsync(new() { NodeId = NodeId, FromId = FromId });
+        await dbContext.Cxx_NodeDependencies.AddAsync(new() { NodeId = NodeId.Value, FromId = FromId.Value });
         await dbContext.SaveChangesAsync();
         return Result.Ok();
     }
@@ -114,16 +109,8 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
     public async Task<Result> LinkDependencyCallExprOperatorEqualAsync(Models.CXX.Location nodeLocation, Models.CXX.Location fromLocation)
     {
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
-        Guid NodeId = await dbContext.Cxx_DefineLocations
-            .Where(item => item.FilePath == nodeLocation.FilePath && item.StartLine == nodeLocation.StartLine && item.EndLine == nodeLocation.EndLine)
-            .Select(item => item.NodeId)
-            .FirstOrDefaultAsync();
-        if (NodeId == Guid.Empty)
-            NodeId = await dbContext.Cxx_ImplementationLocations
-                .Where(item => item.FilePath == nodeLocation.FilePath && item.StartLine == nodeLocation.StartLine && item.EndLine == nodeLocation.EndLine)
-                .Select(item => item.NodeId)
-                .FirstOrDefaultAsync();
-        if (NodeId == Guid.Empty)
+        Result<Guid> NodeId = await GetNodeIdFromLocationAsync(nodeLocation);
+        if (NodeId.IsFailed)
             return Result.Fail("Node location not found");
 
         Guid FromId = await dbContext.Cxx_DefineLocations
@@ -140,10 +127,10 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         if (FromId == Guid.Empty)
             return Result.Fail("From location not found");
 
-        if (await dbContext.Cxx_NodeDependencies.AnyAsync(item => item.NodeId == NodeId && item.FromId == FromId))
+        if (await dbContext.Cxx_NodeDependencies.AnyAsync(item => item.NodeId == NodeId.Value && item.FromId == FromId))
             return Result.Ok();
 
-        await dbContext.Cxx_NodeDependencies.AddAsync(new() { NodeId = NodeId, FromId = FromId });
+        await dbContext.Cxx_NodeDependencies.AddAsync(new() { NodeId = NodeId.Value, FromId = FromId });
         await dbContext.SaveChangesAsync();
         return Result.Ok();
     }
@@ -160,6 +147,76 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         return Result.Ok();
     }
 
+    public async Task<Result> LinkTypeAsync(Models.CXX.Location nodeLocation, Models.CXX.Location typeLocation)
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        Result<Guid> NodeId = await GetNodeIdFromLocationAsync(nodeLocation);
+        if (NodeId.IsFailed)
+            return Result.Fail("Node location not found");
+
+        Result<Guid> TypeId = await GetNodeIdFromLocationAsync(typeLocation);
+        if (TypeId.IsFailed)
+            return Result.Fail("Type location not found");
+
+        if (await dbContext.Cxx_NodeTypes.AnyAsync(item => item.NodeId == NodeId.Value && item.TypeId == TypeId.Value))
+            return Result.Ok();
+
+        await dbContext.Cxx_NodeTypes.AddAsync(new() { NodeId = NodeId.Value, TypeId = TypeId.Value });
+        await dbContext.SaveChangesAsync();
+        return Result.Ok();
+    }
+
+    public async Task<Result> MoveTypeDeclarationTypeAsync(Models.CXX.NodeInfo nodeInfo)
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        Guid[] haveMembers = await dbContext.Cxx_Nodes.Include(item => item.Members)
+            .Where(item => item.CursorKindSpelling == "ClassDecl" || item.CursorKindSpelling == "StructDecl")
+            .Where(item => item.Spelling == nodeInfo.Spelling && item.CxType == nodeInfo.CxType && item.NameSpace == nodeInfo.NameSpace)
+            .Where(item => item.Members.Count > 0)
+            .Select(item => item.Id)
+            .ToArrayAsync();
+        Guid[] noMembers = await dbContext.Cxx_Nodes.Include(item => item.Members)
+            .Where(item => item.CursorKindSpelling == "ClassDecl" || item.CursorKindSpelling == "StructDecl")
+            .Where(item => item.Spelling == nodeInfo.Spelling && item.CxType == nodeInfo.CxType && item.NameSpace == nodeInfo.NameSpace)
+            .Where(item => item.Members.Count == 0)
+            .Select(item => item.Id)
+            .ToArrayAsync();
+
+        if (haveMembers.Any() && noMembers.Any())
+        {
+            NodeType[] removeTypes = await dbContext.Cxx_NodeTypes
+                .Where(item => noMembers.Contains(item.TypeId))
+                .ToArrayAsync();
+            NodeType[] addTypes = removeTypes.Select(item => new NodeType { NodeId = item.NodeId, TypeId = haveMembers[0] }).ToArray();
+            await dbContext.AddRangeAsync(addTypes);
+            dbContext.RemoveRange(removeTypes);
+            await dbContext.SaveChangesAsync();
+        }
+        return Result.Ok();
+    }
+
+    public async Task<Result> RemoveTypeDeclarations()
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        Guid[] nodesId = await dbContext.Cxx_Nodes.Where(item => item.CursorKindSpelling == "ClassDecl" || item.CursorKindSpelling == "StructDecl")
+            .Select(item => item.Id)
+            .ToArrayAsync();
+
+        List<Guid> removeId = new(nodesId);
+        foreach (Guid nodeId in nodesId)
+        {
+            if (await dbContext.Cxx_NodeMembers.AnyAsync(item => item.NodeId == nodeId))
+                removeId.Remove(nodeId);
+            else if (await dbContext.Cxx_NodeDependencies.AnyAsync(item => item.FromId == nodeId))
+                removeId.Remove(nodeId);
+            else if (await dbContext.Cxx_NodeTypes.AnyAsync(item => item.TypeId == nodeId))
+                removeId.Remove(nodeId);
+        }
+        dbContext.Cxx_Nodes.RemoveRange(removeId.Select(id => new Node { Id = id }));
+        await dbContext.SaveChangesAsync();
+        return Result.Ok();
+    }
+
     public async Task<Result> UpdateNodeAsync(Models.CXX.Node node)
     {
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
@@ -169,7 +226,8 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             Id = node.Id,
             CursorKindSpelling = node.CursorKindSpelling,
             Spelling = node.Spelling,
-            CxType = node.CxType
+            CxType = node.CxType,
+            NameSpace = node.NameSpace
         };
         dbContext.Cxx_Nodes.Update(dbNode);
 
@@ -223,5 +281,22 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
 
         await dbContext.SaveChangesAsync();
         return Result.Ok();
+    }
+
+    private async Task<Result<Guid>> GetNodeIdFromLocationAsync(Models.CXX.Location location)
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        Guid NodeId = await dbContext.Cxx_DefineLocations
+            .Where(item => item.FilePath == location.FilePath && item.StartLine == location.StartLine && item.EndLine == location.EndLine)
+            .Select(item => item.NodeId)
+            .FirstOrDefaultAsync();
+        if (NodeId == Guid.Empty)
+            NodeId = await dbContext.Cxx_ImplementationLocations
+                .Where(item => item.FilePath == location.FilePath && item.StartLine == location.StartLine && item.EndLine == location.EndLine)
+                .Select(item => item.NodeId)
+                .FirstOrDefaultAsync();
+        if (NodeId == Guid.Empty)
+            return Result.Fail("Node location not found");
+        return NodeId;
     }
 }

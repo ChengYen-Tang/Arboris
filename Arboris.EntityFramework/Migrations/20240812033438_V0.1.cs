@@ -32,6 +32,7 @@ namespace Arboris.EntityFramework.Migrations
                     CursorKindSpelling = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Spelling = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CxType = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    NameSpace = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ProjectId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
                 },
                 constraints: table =>

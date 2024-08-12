@@ -23,4 +23,25 @@ public class CxxAggregate(ICxxRepository nodeRepository)
 
     public Task<Result> LinkDependencyCallExprOperatorEqualAsync(Location nodeLocation, Location fromLocation)
         => nodeRepository.LinkDependencyCallExprOperatorEqualAsync(nodeLocation, fromLocation);
+
+    public async Task<Result> LinkTypeAsync(Location nodeLocation, Location typeLocation, bool isImplementation)
+    {
+        Result<Node> nodeResult = await nodeRepository.GetNodeFromDefineLocation(nodeLocation);
+        if (nodeResult.IsFailed)
+            return nodeResult.ToResult();
+
+        if (nodeResult.Value.ImplementationLocation is not null && !isImplementation)
+            return Result.Ok();
+
+        return await nodeRepository.LinkTypeAsync(nodeLocation, typeLocation);
+    }
+
+    public Task<Result<NodeInfo[]>> GetDistinctClassAndStructNodeInfosAsync()
+        => nodeRepository.GetDistinctClassAndStructNodeInfosAsync();
+
+    public Task<Result> MoveTypeDeclarationTypeAsync(NodeInfo nodeInfo)
+        => nodeRepository.MoveTypeDeclarationTypeAsync(nodeInfo);
+
+    public Task<Result> RemoveTypeDeclarations()
+        => nodeRepository.RemoveTypeDeclarations();
 }

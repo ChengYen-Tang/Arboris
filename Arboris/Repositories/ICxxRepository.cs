@@ -11,4 +11,8 @@ public interface ICxxRepository
     Task<Result> LinkMemberAsync(Location classLocation, Guid memberId);
     Task<Result> LinkDependencyAsync(Location nodeLocation, Location fromLocation);
     Task<Result> LinkDependencyCallExprOperatorEqualAsync(Location nodeLocation, Location fromLocation);
+    Task<Result> LinkTypeAsync(Location nodeLocation, Location typeLocation);
+    Task<Result<NodeInfo[]>> GetDistinctClassAndStructNodeInfosAsync();
+    Task<Result> MoveTypeDeclarationTypeAsync(NodeInfo nodeInfo);
+    Task<Result> RemoveTypeDeclarations();
 }
