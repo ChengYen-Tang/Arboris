@@ -65,7 +65,7 @@ public class Clang : IDisposable
         Result<NodeInfo[]> nodeInfosResult = await cxxAggregate.GetDistinctClassAndStructNodeInfosAsync();
         foreach (var nodeInfo in nodeInfosResult.Value)
         {
-            Result result = await cxxAggregate.MoveTypeDeclarationTypeAsync(nodeInfo);
+            Result result = await cxxAggregate.MoveTypeDeclarationLinkAsync(nodeInfo);
             Trace.Assert(result.IsSuccess, "MoveTypeDeclarationDepandencyAsync failed");
         }
 
@@ -290,6 +290,28 @@ public class Clang : IDisposable
             logger.LogDebug("    CXCursor_MemberRefExpr -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, fileName);
             Result result = await cxxAggregate.LinkDependencyAsync(compoundStmtLocation, location);
             PrintErrorMessage(result);
+        }
+        else if (cursor.CursorKind == CXCursorKind.CXCursor_OverloadedDeclRef)
+        {
+            if (cursor is not OverloadedDeclRef overloadedDeclRef)
+                return;
+
+            if (overloadedDeclRef.OverloadedDecls is null)
+                return;
+
+            foreach (var extent in overloadedDeclRef.OverloadedDecls.Select(item => item.Extent))
+            {
+                extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint _, out uint _);
+                extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint _, out uint _);
+                using CXString fileName = file.Name;
+                Location location = new(fileName.ToString(), startLine, endLine);
+                if (!VerifyLocation(location) || !VerifyFromNodeOutOfSelfNode(compoundStmtLocation, location))
+                    return;
+
+                logger.LogDebug("    CXCursor_OverloadedDeclRef -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, fileName);
+                Result result = await cxxAggregate.LinkDependencyAsync(compoundStmtLocation, location);
+                PrintErrorMessage(result);
+            }
         }
     }
 

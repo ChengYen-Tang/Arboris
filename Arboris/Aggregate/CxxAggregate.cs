@@ -39,8 +39,8 @@ public class CxxAggregate(ICxxRepository nodeRepository)
     public Task<Result<NodeInfo[]>> GetDistinctClassAndStructNodeInfosAsync()
         => nodeRepository.GetDistinctClassAndStructNodeInfosAsync();
 
-    public Task<Result> MoveTypeDeclarationTypeAsync(NodeInfo nodeInfo)
-        => nodeRepository.MoveTypeDeclarationTypeAsync(nodeInfo);
+    public Task<Result> MoveTypeDeclarationLinkAsync(NodeInfo nodeInfo)
+        => nodeRepository.MoveTypeDeclarationLinkAsync(nodeInfo);
 
     public Task<Result> RemoveTypeDeclarations()
         => nodeRepository.RemoveTypeDeclarations();

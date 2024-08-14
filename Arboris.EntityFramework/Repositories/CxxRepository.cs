@@ -166,7 +166,7 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         return Result.Ok();
     }
 
-    public async Task<Result> MoveTypeDeclarationTypeAsync(Models.CXX.NodeInfo nodeInfo)
+    public async Task<Result> MoveTypeDeclarationLinkAsync(Models.CXX.NodeInfo nodeInfo)
     {
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
         Guid[] haveMembers = await dbContext.Cxx_Nodes.Include(item => item.Members)
