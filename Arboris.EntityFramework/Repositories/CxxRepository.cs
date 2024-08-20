@@ -18,14 +18,18 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             {
                 FilePath = addNode.DefineLocation.FilePath,
                 StartLine = addNode.DefineLocation.StartLine,
-                EndLine = addNode.DefineLocation.EndLine
+                EndLine = addNode.DefineLocation.EndLine,
+                SourceCode = addNode.DefineLocation.SourceCode,
+                CodeDefine = addNode.DefineLocation.CodeDefine
             };
         if (addNode.ImplementationLocation is not null)
             implementationLocation = new()
             {
                 FilePath = addNode.ImplementationLocation.FilePath,
                 StartLine = addNode.ImplementationLocation.StartLine,
-                EndLine = addNode.ImplementationLocation.EndLine
+                EndLine = addNode.ImplementationLocation.EndLine,
+                SourceCode = addNode.ImplementationLocation.SourceCode,
+                CodeDefine = addNode.ImplementationLocation.CodeDefine
             };
 
         Node node = new()
@@ -68,10 +72,10 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         if (defineLocation.Node is null)
             throw new InvalidOperationException("DefineLocation.Node is null");
 
-        Models.CXX.Location domainDefineLocation = new(defineLocation.FilePath, defineLocation.StartLine, defineLocation.EndLine);
+        Models.CXX.Location domainDefineLocation = new(defineLocation.FilePath, defineLocation.StartLine, defineLocation.EndLine) { SourceCode = defineLocation.SourceCode, CodeDefine = defineLocation.CodeDefine };
         Models.CXX.Location? domainImplementationLocation = null;
         if (defineLocation.Node.ImplementationLocation is not null)
-            domainImplementationLocation = new(defineLocation.Node.ImplementationLocation.FilePath, defineLocation.Node.ImplementationLocation.StartLine, defineLocation.Node.ImplementationLocation.EndLine);
+            domainImplementationLocation = new(defineLocation.Node.ImplementationLocation.FilePath, defineLocation.Node.ImplementationLocation.StartLine, defineLocation.Node.ImplementationLocation.EndLine) { SourceCode = defineLocation.Node.ImplementationLocation.SourceCode, CodeDefine = defineLocation.Node.ImplementationLocation.CodeDefine };
         Models.CXX.Node node = new()
         {
             ProjectId = defineLocation.Node.ProjectId,
@@ -239,6 +243,8 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
                 FilePath = node.DefineLocation.FilePath,
                 StartLine = node.DefineLocation.StartLine,
                 EndLine = node.DefineLocation.EndLine,
+                SourceCode = node.DefineLocation.SourceCode,
+                CodeDefine = node.DefineLocation.CodeDefine,
                 Node = dbNode
             };
             await dbContext.Cxx_DefineLocations.AddAsync(location);
@@ -248,6 +254,8 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             defineLocation.FilePath = node.DefineLocation!.FilePath;
             defineLocation.StartLine = node.DefineLocation!.StartLine;
             defineLocation.EndLine = node.DefineLocation!.EndLine;
+            defineLocation.SourceCode = node.DefineLocation!.SourceCode;
+            defineLocation.CodeDefine = node.DefineLocation!.CodeDefine;
             dbContext.Cxx_DefineLocations.Update(defineLocation);
         }
         else if (defineLocation is not null && node.DefineLocation is null)
@@ -263,6 +271,8 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
                 FilePath = node.ImplementationLocation!.FilePath,
                 StartLine = node.ImplementationLocation!.StartLine,
                 EndLine = node.ImplementationLocation!.EndLine,
+                SourceCode = node.ImplementationLocation!.SourceCode,
+                CodeDefine = node.ImplementationLocation!.CodeDefine,
                 Node = dbNode
             };
             await dbContext.Cxx_ImplementationLocations.AddAsync(location);
@@ -272,6 +282,8 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             implementationLocation.FilePath = node.ImplementationLocation!.FilePath;
             implementationLocation.StartLine = node.ImplementationLocation!.StartLine;
             implementationLocation.EndLine = node.ImplementationLocation!.EndLine;
+            implementationLocation.SourceCode = node.ImplementationLocation!.SourceCode;
+            implementationLocation.CodeDefine = node.ImplementationLocation!.CodeDefine;
             dbContext.Cxx_ImplementationLocations.Update(implementationLocation);
         }
         else if (implementationLocation is not null && node.ImplementationLocation is null)

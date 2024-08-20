@@ -116,6 +116,8 @@ public class Clang : IDisposable
 
         if (validCursorKind.Contains(cursor.CursorKind))
         {
+            location.SourceCode = string.Join(Environment.NewLine, File.ReadLines(location.FilePath).Skip((int)startLine - 1).Take((int)endLine - (int)startLine + 1));
+            location.CodeDefine = GetCodeDefine(cursor, location).TrimStart().TrimEnd(' ', '{');
             if (cursor is Decl decl)
             {
                 decl.CanonicalDecl.Extent.Start.GetExpansionLocation(out CXFile defineFIle, out uint defineStartLine, out uint _, out uint _);
@@ -123,7 +125,7 @@ public class Clang : IDisposable
                 using CXString defineFileName = defineFIle.Name;
                 Location defineLocation = new(defineFileName.ToString(), defineStartLine, defineEndLine);
 
-                if (cursor.CursorKind == CXCursorKind.CXCursor_ClassDecl || defineLocation == location)
+                if (cursor.CursorKind == CXCursorKind.CXCursor_ClassDecl || cursor.CursorKind == CXCursorKind.CXCursor_StructDecl || defineLocation == location)
                 {
                     AddNode addNode = new(projectId, cursor.CursorKindSpelling, cursor.Spelling, cXType.ToString(), nameSpace, location, null);
                     await InsertNode(addNode, decl);
@@ -150,6 +152,35 @@ public class Clang : IDisposable
 
         foreach (var child in cursor.CursorChildren)
             await ScanAndInsertNode(child, nameSpace);
+    }
+
+    private static string GetCodeDefine(Cursor rootCursor, Location rootLocation)
+    {
+        if (rootCursor.CursorChildren.Count == 0)
+            return string.Join(Environment.NewLine, File.ReadLines(rootLocation.FilePath).Skip((int)rootLocation.StartLine - 1).Take((int)rootLocation.EndLine - (int)rootLocation.StartLine + 1));
+
+        if (rootCursor.CursorKind == CXCursorKind.CXCursor_ClassDecl || rootCursor.CursorKind == CXCursorKind.CXCursor_StructDecl)
+        {
+            Cursor cursor = rootCursor.CursorChildren[0];
+            cursor.Extent.Start.GetExpansionLocation(out CXFile _, out uint startLine, out uint _, out uint _);
+            cursor.Extent.End.GetExpansionLocation(out CXFile _, out uint _, out uint _, out uint _);
+            return string.Join(Environment.NewLine, File.ReadLines(rootLocation.FilePath).Skip((int)rootLocation.StartLine - 1).Take((int)startLine - 1 - (int)rootLocation.StartLine + 1));
+        }
+        else if (rootCursor.CursorKind == CXCursorKind.CXCursor_CXXMethod || rootCursor.CursorKind == CXCursorKind.CXCursor_FunctionDecl || rootCursor.CursorKind == CXCursorKind.CXCursor_Constructor || rootCursor.CursorKind == CXCursorKind.CXCursor_Destructor)
+        {
+            foreach (var child in rootCursor.CursorChildren)
+            {
+                if (child.CursorKind == CXCursorKind.CXCursor_CompoundStmt)
+                {
+                    child.Extent.Start.GetExpansionLocation(out CXFile _, out uint startLine, out uint _, out uint _);
+                    child.Extent.End.GetExpansionLocation(out CXFile _, out uint _, out uint _, out uint _);
+                    return string.Join(Environment.NewLine, File.ReadLines(rootLocation.FilePath).Skip((int)rootLocation.StartLine - 1).Take((int)startLine - 1 - (int)rootLocation.StartLine + 1));
+                }
+            }
+            return string.Join(Environment.NewLine, File.ReadLines(rootLocation.FilePath).Skip((int)rootLocation.StartLine - 1).Take((int)rootLocation.EndLine - (int)rootLocation.StartLine + 1));
+        }
+        else
+            return string.Join(Environment.NewLine, File.ReadLines(rootLocation.FilePath).Skip((int)rootLocation.StartLine - 1).Take((int)rootLocation.EndLine - (int)rootLocation.StartLine + 1));
     }
 
     private async Task ScanAndLinkNodeType(Cursor cursor)
