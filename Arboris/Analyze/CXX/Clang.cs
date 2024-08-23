@@ -148,7 +148,7 @@ public class Clang : IDisposable
         }
 
         if (cursor.CursorKind == CXCursorKind.CXCursor_Namespace)
-            nameSpace = cursor.Spelling;
+            nameSpace = nameSpace is null ? cursor.Spelling : nameSpace + "::" + cursor.Spelling;
 
         foreach (var child in cursor.CursorChildren)
             await ScanAndInsertNode(child, nameSpace);
