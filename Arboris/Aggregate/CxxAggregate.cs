@@ -1,4 +1,5 @@
-﻿using Arboris.Models.CXX;
+﻿using Arboris.Models.Analyze.CXX;
+using Arboris.Models.Graph.CXX;
 using Arboris.Repositories;
 using FluentResults;
 
@@ -44,4 +45,36 @@ public class CxxAggregate(ICxxRepository nodeRepository)
 
     public Task<Result> RemoveTypeDeclarations()
         => nodeRepository.RemoveTypeDeclarations();
+
+    public async Task<Result<OverallGraph>> GetOverallGraphAsync(Guid projectId)
+    {
+        Task<Result<OverallNode[]>> overallNodeTask = nodeRepository.GetOverallNodeAsync(projectId);
+        Task<Result<OverallNodeMember[]>> overallNodeMemberTask = nodeRepository.GetOverallNodeMemberAsync(projectId);
+        Task<Result<OverallNodeType[]>> overallNodeTypeTask = nodeRepository.GetOverallNodeTypeAsync(projectId);
+        Task<Result<OverallNodeDependency[]>> overallNodeDependencyTask = nodeRepository.GetOverallNodeDependencyAsync(projectId);
+
+        await Task.WhenAll(overallNodeTask, overallNodeMemberTask, overallNodeTypeTask, overallNodeDependencyTask);
+
+        Result<OverallNode[]> overallNodeResult = overallNodeTask.Result;
+        Result<OverallNodeMember[]> overallNodeMemberResult = overallNodeMemberTask.Result;
+        Result<OverallNodeType[]> overallNodeTypeResult = overallNodeTypeTask.Result;
+        Result<OverallNodeDependency[]> overallNodeDependencyResult = overallNodeDependencyTask.Result;
+
+        if (overallNodeResult.IsFailed)
+            return overallNodeResult.ToResult();
+        if (overallNodeMemberResult.IsFailed)
+            return overallNodeMemberResult.ToResult();
+        if (overallNodeTypeResult.IsFailed)
+            return overallNodeTypeResult.ToResult();
+        if (overallNodeDependencyResult.IsFailed)
+            return overallNodeDependencyResult.ToResult();
+
+        return new OverallGraph
+        {
+            Nodes = overallNodeResult.Value,
+            NodeMembers = overallNodeMemberResult.Value,
+            NodeTypes = overallNodeTypeResult.Value,
+            NodeDependencies = overallNodeDependencyResult.Value
+        };
+    }
 }

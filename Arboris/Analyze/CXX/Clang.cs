@@ -1,5 +1,5 @@
 ﻿using Arboris.Aggregate;
-using Arboris.Models.CXX;
+using Arboris.Models.Analyze.CXX;
 using ClangSharp;
 using ClangSharp.Interop;
 using FluentResults;
@@ -410,4 +410,10 @@ public class Clang : IDisposable
         Dispose(disposing: true);
         GC.SuppressFinalize(this);
     }
+}
+
+public class ClangFactory(CxxAggregate cxxAggregate, ILogger<Clang> logger)
+{
+    public Clang Create(Guid projectId, string path)
+        => new(projectId, path, cxxAggregate, logger);
 }

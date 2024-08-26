@@ -1,6 +1,7 @@
 ﻿using Arboris.EntityFramework.EntityFrameworkCore;
 using Arboris.EntityFramework.EntityFrameworkCore.CXX;
 using Arboris.EntityFramework.Repositories;
+using Arboris.Models.Analyze.CXX;
 using Arboris.Tests.EntityFramework.EntityFrameworkCore;
 using Arboris.Tests.EntityFramework.Repositories.TestData;
 using FluentResults;
@@ -28,7 +29,7 @@ public class CxxRepositoryTests
     {
         await generateBuilder.GenerateProject1().BuildAsync();
 
-        Models.CXX.AddNode addNode = new(generateBuilder.Projects[0].Id, "Class", "RootNode1", null, new("RootNode1.h", 1, 1), null);
+        AddNode addNode = new(generateBuilder.Projects[0].Id, "Class", "RootNode1", null, new("RootNode1.h", 1, 1), null);
         await cxxRepository.AddNodeAsync(addNode);
 
         using ArborisDbContext db = await dbFactory.CreateDbContextAsync();
@@ -48,8 +49,8 @@ public class CxxRepositoryTests
     {
         await generateBuilder.GenerateProject1().GenerateRootNode1().BuildAsync();
 
-        Models.CXX.Location location = new(generateBuilder.Locations[0].FilePath, generateBuilder.Locations[0].StartLine, generateBuilder.Locations[0].EndLine);
-        Result<Models.CXX.Node> result = await cxxRepository.GetNodeFromDefineLocation(location);
+        Models.Analyze.CXX.Location location = new(generateBuilder.Locations[0].FilePath, generateBuilder.Locations[0].StartLine, generateBuilder.Locations[0].EndLine);
+        Result<Models.Analyze.CXX.Node> result = await cxxRepository.GetNodeFromDefineLocation(location);
 
         Assert.IsTrue(result.IsSuccess);
         Assert.AreEqual(generateBuilder.Nodes[0].CursorKindSpelling, result.Value.CursorKindSpelling);
@@ -63,7 +64,7 @@ public class CxxRepositoryTests
     [TestMethod]
     public async Task TestGetNodeFromDefineLocation_LocationNotFound()
     {
-        Result<Models.CXX.Node> result = await cxxRepository.GetNodeFromDefineLocation(new("NotFound.h", 1, 1));
+        Result<Models.Analyze.CXX.Node> result = await cxxRepository.GetNodeFromDefineLocation(new("NotFound.h", 1, 1));
 
         Assert.IsTrue(result.IsFailed);
         Assert.AreEqual("Location not found", result.Errors[0].Message);
@@ -74,7 +75,7 @@ public class CxxRepositoryTests
     {
         await generateBuilder.GenerateProject1().GenerateRootNode1().BuildAsync();
 
-        Models.CXX.Node node = new()
+        Models.Analyze.CXX.Node node = new()
         {
             Id = generateBuilder.Nodes[0].Id,
             CursorKindSpelling = "Struct",

@@ -1,4 +1,5 @@
-﻿using Arboris.Models.CXX;
+﻿using Arboris.Models.Analyze.CXX;
+using Arboris.Models.Graph.CXX;
 using FluentResults;
 
 namespace Arboris.Repositories;
@@ -15,4 +16,8 @@ public interface ICxxRepository
     Task<Result<NodeInfo[]>> GetDistinctClassAndStructNodeInfosAsync();
     Task<Result> MoveTypeDeclarationLinkAsync(NodeInfo nodeInfo);
     Task<Result> RemoveTypeDeclarations();
+    Task<Result<OverallNode[]>> GetOverallNodeAsync(Guid projectId);
+    Task<Result<OverallNodeMember[]>> GetOverallNodeMemberAsync(Guid projectId);
+    Task<Result<OverallNodeType[]>> GetOverallNodeTypeAsync(Guid projectId);
+    Task<Result<OverallNodeDependency[]>> GetOverallNodeDependencyAsync(Guid projectId);
 }

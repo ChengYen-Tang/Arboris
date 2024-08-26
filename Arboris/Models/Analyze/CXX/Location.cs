@@ -1,4 +1,4 @@
-﻿namespace Arboris.Models.CXX;
+﻿namespace Arboris.Models.Analyze.CXX;
 public class Location
 {
     public string FilePath { get; init; }

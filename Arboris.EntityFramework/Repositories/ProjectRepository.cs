@@ -8,13 +8,13 @@ namespace Arboris.EntityFramework.Repositories;
 
 public class ProjectRepository(IDbContextFactory<ArborisDbContext> dbContextFactory) : IProjectRepository
 {
-    public async Task<Guid> CreateProjectAsync(CreateProject createProject)
+    public async Task<Result> CreateProjectAsync(Guid Id)
     {
-        Project project = new() { Name = createProject.Name };
+        Project project = new() { Id = Id };
         using ArborisDbContext db = await dbContextFactory.CreateDbContextAsync();
         await db.Projects.AddAsync(project);
         await db.SaveChangesAsync();
-        return project.Id;
+        return Result.Ok();
     }
 
     public async Task<Result> DeleteProjectAsync(Guid id)
@@ -34,14 +34,14 @@ public class ProjectRepository(IDbContextFactory<ArborisDbContext> dbContextFact
         Project? project = await db.Projects.FindAsync(id);
         if (project is null)
             return Result.Fail<GetProject>("Project not found");
-        return Result.Ok(new GetProject(project.Id, project.Name, project.CreateTime));
+        return Result.Ok(new GetProject(project.Id, project.CreateTime));
     }
 
     public async Task<GetProject[]> GetProjectsAsync()
     {
         using ArborisDbContext db = await dbContextFactory.CreateDbContextAsync();
         return await db.Projects
-            .Select(item => new GetProject(item.Id, item.Name, item.CreateTime))
+            .Select(item => new GetProject(item.Id, item.CreateTime))
             .ToArrayAsync();
     }
 }

@@ -1,4 +1,4 @@
-﻿namespace Arboris.Models.CXX;
+﻿namespace Arboris.Models.Analyze.CXX;
 
 public record AddNode(Guid ProjectId, string? CursorKindSpelling, string? Spelling, string? CxType, string? NameSpace, Location? DefineLocation, Location? ImplementationLocation);
 public class Node
