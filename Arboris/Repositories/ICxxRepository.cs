@@ -20,4 +20,5 @@ public interface ICxxRepository
     Task<Result<OverallNodeMember[]>> GetOverallNodeMemberAsync(Guid projectId);
     Task<Result<OverallNodeType[]>> GetOverallNodeTypeAsync(Guid projectId);
     Task<Result<OverallNodeDependency[]>> GetOverallNodeDependencyAsync(Guid projectId);
+    Task<Result> UpdateLLMDescriptionAsync(Guid id, string description);
 }

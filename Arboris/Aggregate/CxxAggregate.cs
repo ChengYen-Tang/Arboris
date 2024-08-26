@@ -77,4 +77,7 @@ public class CxxAggregate(ICxxRepository nodeRepository)
             NodeDependencies = overallNodeDependencyResult.Value
         };
     }
+
+    public async Task<Result> UpdateLLMDescriptionAsync(Guid id, string description)
+        => await nodeRepository.UpdateLLMDescriptionAsync(id, description);
 }

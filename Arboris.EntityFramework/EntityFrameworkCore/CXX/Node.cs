@@ -10,6 +10,8 @@ public class Node
     public string? Spelling { get; set; }
     public string? CxType { get; set; }
     public string? NameSpace { get; set; }
+    public string? LLMDescription { get; set; }
+    public string? UserDescription { get; set; }
 
     [Required]
     public Guid ProjectId { get; set; }

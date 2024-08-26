@@ -26,7 +26,7 @@ public class Location
     [Required]
     public uint EndLine { get; set; }
 
-    public string? CodeDefine { get; set; }
+    public string? DisplayName { get; set; }
     public string? SourceCode { get; set; }
 
     [Required]

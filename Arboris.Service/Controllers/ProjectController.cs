@@ -22,6 +22,7 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
     /// <returns></returns>
     [HttpPost]
     [ProducesResponseType(typeof(OverallGraph), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Create(Guid id, IFormFile file)
     {
@@ -80,6 +81,7 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
     /// <returns></returns>
     [HttpDelete]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Delete(Guid id)
     {
