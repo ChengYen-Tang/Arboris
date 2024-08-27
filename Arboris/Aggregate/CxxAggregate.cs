@@ -80,4 +80,36 @@ public class CxxAggregate(ICxxRepository nodeRepository)
 
     public async Task<Result> UpdateLLMDescriptionAsync(Guid id, string description)
         => await nodeRepository.UpdateLLMDescriptionAsync(id, description);
+
+    public async Task<Result<ForDescriptionGraph>> GetGraphForDescription(Guid id)
+    {
+        Task<Result<ForDescriptionNode>> ForDescriptionNodeTask = nodeRepository.GetForDescriptionNodeAsync(id);
+        Task<Result<OverViewNode[]>> NodeMembersTask = nodeRepository.GetNodeMembersAsync(id);
+        Task<Result<OverViewNode[]>> NodeTypesTask = nodeRepository.GetNodeTypesAsync(id);
+        Task<Result<OverViewNode[]>> NodeDependenciesTask = nodeRepository.GetNodeDependenciesAsync(id);
+
+        await Task.WhenAll(ForDescriptionNodeTask, NodeMembersTask, NodeTypesTask, NodeDependenciesTask);
+
+        Result<ForDescriptionNode> ForDescriptionNodeResult = ForDescriptionNodeTask.Result;
+        Result<OverViewNode[]> NodeMembersResult = NodeMembersTask.Result;
+        Result<OverViewNode[]> NodeTypesResult = NodeTypesTask.Result;
+        Result<OverViewNode[]> NodeDependenciesResult = NodeDependenciesTask.Result;
+
+        if (ForDescriptionNodeResult.IsFailed)
+            return ForDescriptionNodeResult.ToResult();
+        if (NodeMembersResult.IsFailed)
+            return NodeMembersResult.ToResult();
+        if (NodeTypesResult.IsFailed)
+            return NodeTypesResult.ToResult();
+        if (NodeDependenciesResult.IsFailed)
+            return NodeDependenciesResult.ToResult();
+
+        return new ForDescriptionGraph
+        {
+            Node = ForDescriptionNodeResult.Value,
+            NodeMembers = NodeMembersResult.Value,
+            NodeTypes = NodeTypesResult.Value,
+            NodeDependencies = NodeDependenciesResult.Value
+        };
+    }
 }

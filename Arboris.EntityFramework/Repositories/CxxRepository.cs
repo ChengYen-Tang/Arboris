@@ -60,6 +60,51 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             .ToArrayAsync();
     }
 
+    public async Task<Result<ForDescriptionNode>> GetForDescriptionNodeAsync(Guid nodeId)
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        Node? node = await dbContext.Cxx_Nodes.Include(item => item.DefineLocation).Include(item => item.ImplementationLocation).FirstOrDefaultAsync(item => item.Id == nodeId);
+        if (node is null)
+            return Result.Fail<ForDescriptionNode>("Node not found");
+
+        string? sourceCode = node.ImplementationLocation is not null ? node.ImplementationLocation.SourceCode : node.DefineLocation?.SourceCode;
+        ForDescriptionNode descriptionNode = new()
+        {
+            UserDescription = node.UserDescription,
+            SourceCode = sourceCode,
+        };
+        return descriptionNode;
+    }
+
+    public async Task<Result<OverViewNode[]>> GetNodeDependenciesAsync(Guid nodeId)
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        Guid[] dependencies = await dbContext.Cxx_NodeDependencies
+            .Where(item => item.NodeId == nodeId)
+            .Select(item => item.FromId)
+            .ToArrayAsync();
+        if (dependencies.Length == 0)
+            return Array.Empty<OverViewNode>();
+        Node[] nodes = await dbContext.Cxx_Nodes
+            .Include(item => item.DefineLocation)
+            .Include(item => item.ImplementationLocation)
+            .Where(item => dependencies.Contains(item.Id))
+            .ToArrayAsync();
+
+        OverViewNode[] viewNodes = new OverViewNode[nodes.Length];
+
+        for (int i = 0; i < nodes.Length; i++)
+        {
+            string? displayName = nodes[i].DefineLocation is not null ? nodes[i].DefineLocation!.DisplayName : nodes[i].ImplementationLocation?.DisplayName;
+            viewNodes[i] = new OverViewNode
+            {
+                Description = nodes[i].LLMDescription,
+                DisplayName = displayName,
+            };
+        }
+        return viewNodes;
+    }
+
     public async Task<Result<Models.Analyze.CXX.Node>> GetNodeFromDefineLocation(Models.Analyze.CXX.Location location)
     {
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
@@ -90,6 +135,64 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         };
 
         return node;
+    }
+
+    public async Task<Result<OverViewNode[]>> GetNodeMembersAsync(Guid nodeId)
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        Guid[] members = await dbContext.Cxx_NodeMembers
+            .Where(item => item.NodeId == nodeId)
+            .Select(item => item.MemberId)
+            .ToArrayAsync();
+        if (members.Length == 0)
+            return Array.Empty<OverViewNode>();
+        Node[] nodes = await dbContext.Cxx_Nodes
+            .Include(item => item.DefineLocation)
+            .Include(item => item.ImplementationLocation)
+            .Where(item => members.Contains(item.Id))
+            .ToArrayAsync();
+
+        OverViewNode[] viewNodes = new OverViewNode[nodes.Length];
+
+        for (int i = 0; i < nodes.Length; i++)
+        {
+            string? displayName = nodes[i].DefineLocation is not null ? nodes[i].DefineLocation!.DisplayName : nodes[i].ImplementationLocation?.DisplayName;
+            viewNodes[i] = new OverViewNode
+            {
+                Description = nodes[i].LLMDescription,
+                DisplayName = displayName,
+            };
+        }
+        return viewNodes;
+    }
+
+    public async Task<Result<OverViewNode[]>> GetNodeTypesAsync(Guid nodeId)
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        Guid[] types = await dbContext.Cxx_NodeTypes
+            .Where(item => item.NodeId == nodeId)
+            .Select(item => item.TypeId)
+            .ToArrayAsync();
+        if (types.Length == 0)
+            return Array.Empty<OverViewNode>();
+        Node[] nodes = await dbContext.Cxx_Nodes
+            .Include(item => item.DefineLocation)
+            .Include(item => item.ImplementationLocation)
+            .Where(item => types.Contains(item.Id))
+            .ToArrayAsync();
+
+        OverViewNode[] viewNodes = new OverViewNode[nodes.Length];
+
+        for (int i = 0; i < nodes.Length; i++)
+        {
+            string? displayName = nodes[i].DefineLocation is not null ? nodes[i].DefineLocation!.DisplayName : nodes[i].ImplementationLocation?.DisplayName;
+            viewNodes[i] = new OverViewNode
+            {
+                Description = nodes[i].LLMDescription,
+                DisplayName = displayName,
+            };
+        }
+        return viewNodes;
     }
 
     public async Task<Result<OverallNode[]>> GetOverallNodeAsync(Guid projectId)

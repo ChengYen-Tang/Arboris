@@ -12,6 +12,7 @@ public class Node
     public string? NameSpace { get; set; }
     public string? LLMDescription { get; set; }
     public string? UserDescription { get; set; }
+    public string? ExampleCode { get; set; }
 
     [Required]
     public Guid ProjectId { get; set; }
