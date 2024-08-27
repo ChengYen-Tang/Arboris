@@ -60,12 +60,12 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             .ToArrayAsync();
     }
 
-    public async Task<Result<ForDescriptionNode>> GetForDescriptionNodeAsync(Guid nodeId)
+    public async Task<Result<ForDescriptionNode>> GetNodeForDescriptionAsync(Guid nodeId)
     {
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
         Node? node = await dbContext.Cxx_Nodes.Include(item => item.DefineLocation).Include(item => item.ImplementationLocation).FirstOrDefaultAsync(item => item.Id == nodeId);
         if (node is null)
-            return Result.Fail<ForDescriptionNode>("Node not found");
+            return Result.Fail("Node not found");
 
         string? sourceCode = node.ImplementationLocation is not null ? node.ImplementationLocation.SourceCode : node.DefineLocation?.SourceCode;
         ForDescriptionNode descriptionNode = new()
@@ -74,6 +74,24 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             SourceCode = sourceCode,
         };
         return descriptionNode;
+    }
+
+    public async Task<Result<ForUnitTestNode>> GetForUnitTestNodeAsync(Guid nodeId)
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        Node? node = await dbContext.Cxx_Nodes.Include(item => item.DefineLocation).Include(item => item.ImplementationLocation).FirstOrDefaultAsync(item => item.Id == nodeId);
+        if (node is null)
+            return Result.Fail("Node not found");
+
+        string? displayName = node.DefineLocation is not null ? node.DefineLocation!.DisplayName : node.ImplementationLocation?.DisplayName;
+        ForUnitTestNode unitTestNode = new()
+        {
+            Description = node.LLMDescription,
+            DisplayName = displayName,
+            ExampleCode = node.ExampleCode,
+        };
+
+        return unitTestNode;
     }
 
     public async Task<Result<OverViewNode[]>> GetNodeDependenciesAsync(Guid nodeId)

@@ -42,4 +42,21 @@ public class CxxController(ILogger<CxxController> logger, CxxAggregate cxxAggreg
         }
         return Ok(result.Value);
     }
+
+    [HttpGet]
+    [ProducesResponseType(typeof(ForUnitTestGraph), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetGraphForUnitTest(Guid id)
+    {
+        Result<ForUnitTestGraph> result = await cxxAggregate.GetGraphForUnitTest(id);
+        if (result.IsFailed)
+        {
+            Guid errorId = Guid.NewGuid();
+            string message = string.Join(',', result.Errors.Select(item => item.Message));
+            logger.LogError("Error Id: {ErrId}, cxxAggregate.GetGraphForUnitTest({Id}) Failed, Error message: {Message}", errorId, id, message);
+            return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
+        }
+        return Ok(result.Value);
+    }
 }

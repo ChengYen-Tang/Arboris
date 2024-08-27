@@ -83,7 +83,7 @@ public class CxxAggregate(ICxxRepository nodeRepository)
 
     public async Task<Result<ForDescriptionGraph>> GetGraphForDescription(Guid id)
     {
-        Task<Result<ForDescriptionNode>> ForDescriptionNodeTask = nodeRepository.GetForDescriptionNodeAsync(id);
+        Task<Result<ForDescriptionNode>> ForDescriptionNodeTask = nodeRepository.GetNodeForDescriptionAsync(id);
         Task<Result<OverViewNode[]>> NodeMembersTask = nodeRepository.GetNodeMembersAsync(id);
         Task<Result<OverViewNode[]>> NodeTypesTask = nodeRepository.GetNodeTypesAsync(id);
         Task<Result<OverViewNode[]>> NodeDependenciesTask = nodeRepository.GetNodeDependenciesAsync(id);
@@ -107,6 +107,38 @@ public class CxxAggregate(ICxxRepository nodeRepository)
         return new ForDescriptionGraph
         {
             Node = ForDescriptionNodeResult.Value,
+            NodeMembers = NodeMembersResult.Value,
+            NodeTypes = NodeTypesResult.Value,
+            NodeDependencies = NodeDependenciesResult.Value
+        };
+    }
+
+    public async Task<Result<ForUnitTestGraph>> GetGraphForUnitTest(Guid id)
+    {
+        Task<Result<ForUnitTestNode>> ForUnitTestNodeTask = nodeRepository.GetForUnitTestNodeAsync(id);
+        Task<Result<OverViewNode[]>> NodeMembersTask = nodeRepository.GetNodeMembersAsync(id);
+        Task<Result<OverViewNode[]>> NodeTypesTask = nodeRepository.GetNodeTypesAsync(id);
+        Task<Result<OverViewNode[]>> NodeDependenciesTask = nodeRepository.GetNodeDependenciesAsync(id);
+
+        await Task.WhenAll(ForUnitTestNodeTask, NodeMembersTask, NodeTypesTask, NodeDependenciesTask);
+
+        Result<ForUnitTestNode> ForUnitTestNodeResult = ForUnitTestNodeTask.Result;
+        Result<OverViewNode[]> NodeMembersResult = NodeMembersTask.Result;
+        Result<OverViewNode[]> NodeTypesResult = NodeTypesTask.Result;
+        Result<OverViewNode[]> NodeDependenciesResult = NodeDependenciesTask.Result;
+
+        if (ForUnitTestNodeResult.IsFailed)
+            return ForUnitTestNodeResult.ToResult();
+        if (NodeMembersResult.IsFailed)
+            return NodeMembersResult.ToResult();
+        if (NodeTypesResult.IsFailed)
+            return NodeTypesResult.ToResult();
+        if (NodeDependenciesResult.IsFailed)
+            return NodeDependenciesResult.ToResult();
+
+        return new ForUnitTestGraph
+        {
+            Node = ForUnitTestNodeResult.Value,
             NodeMembers = NodeMembersResult.Value,
             NodeTypes = NodeTypesResult.Value,
             NodeDependencies = NodeDependenciesResult.Value
