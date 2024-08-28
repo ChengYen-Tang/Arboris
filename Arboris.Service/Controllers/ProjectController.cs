@@ -21,11 +21,31 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
     /// <param name="file"> Project file </param>
     /// <returns></returns>
     [HttpPost]
+    [Route("Create")]
     [ProducesResponseType(typeof(OverallGraph), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Create(Guid id, IFormFile file)
     {
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest("No file uploaded.");
+        }
+
+        if (!(file.ContentType.Contains("zip") || file.ContentType.Contains("ZIP")))
+        {
+            return BadRequest("Only .zip files are allowed.");
+        }
+
+        var allowedExtensions = new[] { ".zip" };
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+        if (!allowedExtensions.Contains(extension))
+        {
+            return BadRequest("Only .zip files are allowed.");
+        }
+
         Result result = await projectRepository.CreateProjectAsync(id);
         if (result.IsFailed)
         {
@@ -52,15 +72,25 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
                 logger.LogError(ex, "Error Id: {ErrId}, ZipFile Failed", errorId);
                 return StatusCode(StatusCodes.Status400BadRequest, $"Error Id: {errorId}, Error message: {ex.Message}");
             }
-            else
-            {
-                logger.LogError(ex, "Error Id: {ErrId}, ZipFile Failed", errorId);
-                return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
-            }
+
+            logger.LogError(ex, "Error Id: {ErrId}, ZipFile Failed, Error message: {Message}", errorId, ex.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
 
         using Clang clang = clangFactory.Create(id, projectDirectory);
-        await clang.Scan();
+        try
+        {
+            await clang.Scan();
+        }
+        catch (Exception ex)
+        {
+            _ = await projectRepository.DeleteProjectAsync(id);
+            Directory.Delete(projectDirectory, true);
+            Guid errorId = Guid.NewGuid();
+            logger.LogError(ex, "Error Id: {ErrId}, clang.Scan Failed, Error message: {Message}", errorId, ex.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
+        }
+
         Directory.Delete(projectDirectory, true);
         Result<OverallGraph> overallGraph = await cxxAggregate.GetOverallGraphAsync(id);
         if (overallGraph.IsFailed)
@@ -80,6 +110,7 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
     /// <param name="id"> Project id </param>
     /// <returns></returns>
     [HttpDelete]
+    [Route("Delete")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]

@@ -117,7 +117,7 @@ public class Clang : IDisposable
         if (validCursorKind.Contains(cursor.CursorKind))
         {
             location.SourceCode = string.Join(Environment.NewLine, File.ReadLines(location.FilePath).Skip((int)startLine - 1).Take((int)endLine - (int)startLine + 1));
-            location.CodeDefine = GetCodeDefine(cursor, location).TrimStart().TrimEnd(' ', '{');
+            location.CodeDefine = GetDisplayName(cursor, location).TrimStart().TrimEnd(' ', '{', '\n', '\r');
             if (cursor is Decl decl)
             {
                 decl.CanonicalDecl.Extent.Start.GetExpansionLocation(out CXFile defineFIle, out uint defineStartLine, out uint _, out uint _);
@@ -154,7 +154,7 @@ public class Clang : IDisposable
             await ScanAndInsertNode(child, nameSpace);
     }
 
-    private static string GetCodeDefine(Cursor rootCursor, Location rootLocation)
+    private static string GetDisplayName(Cursor rootCursor, Location rootLocation)
     {
         if (rootCursor.CursorChildren.Count == 0)
             return string.Join(Environment.NewLine, File.ReadLines(rootLocation.FilePath).Skip((int)rootLocation.StartLine - 1).Take((int)rootLocation.EndLine - (int)rootLocation.StartLine + 1));

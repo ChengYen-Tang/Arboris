@@ -10,6 +10,7 @@ namespace Arboris.Service.Controllers;
 public class CxxController(ILogger<CxxController> logger, CxxAggregate cxxAggregate) : ControllerBase
 {
     [HttpPut]
+    [Route("UpdateDescription")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -27,6 +28,7 @@ public class CxxController(ILogger<CxxController> logger, CxxAggregate cxxAggreg
     }
 
     [HttpGet]
+    [Route("GetGraphForDescription")]
     [ProducesResponseType(typeof(ForDescriptionNode), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -44,6 +46,7 @@ public class CxxController(ILogger<CxxController> logger, CxxAggregate cxxAggreg
     }
 
     [HttpGet]
+    [Route("GetGraphForUnitTest")]
     [ProducesResponseType(typeof(ForUnitTestGraph), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
