@@ -50,8 +50,9 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
         if (result.IsFailed)
         {
             Guid errorId = Guid.NewGuid();
-            logger.LogError("Error Id: {ErrId}, projectRepository.CreateProjectAsync({Id})", errorId, id);
-            return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
+            string errorMessages = string.Join(',', result.Errors.Select(item => item.Message));
+            logger.LogError("Error Id: {ErrId}, projectRepository.CreateProjectAsync({Id}), Error message: {ErrorMessage}", errorId, id, errorMessages);
+            return StatusCode(StatusCodes.Status400BadRequest, $"Error Id: {errorId}, Error message: {errorMessages}");
         }
 
         string projectDirectory = Path.Combine(cacheDirectory, id.ToString());

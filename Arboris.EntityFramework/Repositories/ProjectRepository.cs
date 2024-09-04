@@ -10,8 +10,10 @@ public class ProjectRepository(IDbContextFactory<ArborisDbContext> dbContextFact
 {
     public async Task<Result> CreateProjectAsync(Guid Id)
     {
-        Project project = new() { Id = Id };
         using ArborisDbContext db = await dbContextFactory.CreateDbContextAsync();
+        if (await db.Projects.AnyAsync(item => item.Id == Id))
+            return Result.Fail("Project already exists");
+        Project project = new() { Id = Id };
         await db.Projects.AddAsync(project);
         await db.SaveChangesAsync();
         return Result.Ok();
