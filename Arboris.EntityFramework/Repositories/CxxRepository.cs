@@ -76,7 +76,7 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         return descriptionNode;
     }
 
-    public async Task<Result<ForUnitTestNode>> GetForUnitTestNodeAsync(Guid nodeId)
+    public async Task<Result<OverViewNode>> GetForUnitTestNodeAsync(Guid nodeId)
     {
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
         Node? node = await dbContext.Cxx_Nodes.Include(item => item.DefineLocation).Include(item => item.ImplementationLocation).FirstOrDefaultAsync(item => item.Id == nodeId);
@@ -84,11 +84,10 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             return Result.Fail("Node not found");
 
         string? displayName = node.DefineLocation is not null ? node.DefineLocation!.DisplayName : node.ImplementationLocation?.DisplayName;
-        ForUnitTestNode unitTestNode = new()
+        OverViewNode unitTestNode = new()
         {
             Description = node.LLMDescription,
-            DisplayName = displayName,
-            ExampleCode = node.ExampleCode,
+            DisplayName = displayName
         };
 
         return unitTestNode;

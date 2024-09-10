@@ -22,7 +22,7 @@ public interface ICxxRepository
     Task<Result<OverallNodeDependency[]>> GetOverallNodeDependencyAsync(Guid projectId);
     Task<Result> UpdateLLMDescriptionAsync(Guid id, string description);
     Task<Result<ForDescriptionNode>> GetNodeForDescriptionAsync(Guid nodeId);
-    Task<Result<ForUnitTestNode>> GetForUnitTestNodeAsync(Guid nodeId);
+    Task<Result<OverViewNode>> GetForUnitTestNodeAsync(Guid nodeId);
     Task<Result<OverViewNode[]>> GetNodeMembersAsync(Guid nodeId);
     Task<Result<OverViewNode[]>> GetNodeTypesAsync(Guid nodeId);
     Task<Result<OverViewNode[]>> GetNodeDependenciesAsync(Guid nodeId);

@@ -115,14 +115,14 @@ public class CxxAggregate(ICxxRepository nodeRepository)
 
     public async Task<Result<ForUnitTestGraph>> GetGraphForUnitTest(Guid id)
     {
-        Task<Result<ForUnitTestNode>> ForUnitTestNodeTask = nodeRepository.GetForUnitTestNodeAsync(id);
+        Task<Result<OverViewNode>> ForUnitTestNodeTask = nodeRepository.GetForUnitTestNodeAsync(id);
         Task<Result<OverViewNode[]>> NodeMembersTask = nodeRepository.GetNodeMembersAsync(id);
         Task<Result<OverViewNode[]>> NodeTypesTask = nodeRepository.GetNodeTypesAsync(id);
         Task<Result<OverViewNode[]>> NodeDependenciesTask = nodeRepository.GetNodeDependenciesAsync(id);
 
         await Task.WhenAll(ForUnitTestNodeTask, NodeMembersTask, NodeTypesTask, NodeDependenciesTask);
 
-        Result<ForUnitTestNode> ForUnitTestNodeResult = ForUnitTestNodeTask.Result;
+        Result<OverViewNode> ForUnitTestNodeResult = ForUnitTestNodeTask.Result;
         Result<OverViewNode[]> NodeMembersResult = NodeMembersTask.Result;
         Result<OverViewNode[]> NodeTypesResult = NodeTypesTask.Result;
         Result<OverViewNode[]> NodeDependenciesResult = NodeDependenciesTask.Result;
