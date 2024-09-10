@@ -7,8 +7,13 @@ namespace Arboris.Aggregate;
 
 public class CxxAggregate(ICxxRepository nodeRepository)
 {
-    public Task<Guid> AddNodeAsync(AddNode addNode)
-        => nodeRepository.AddNodeAsync(addNode);
+    public async Task<Guid> AddNodeAsync(AddNode addNode)
+    {
+        Result<Guid> checkNodeExistsResult = await nodeRepository.CheckNodeExists(addNode);
+        if (checkNodeExistsResult.IsSuccess)
+            return checkNodeExistsResult.Value;
+        return await nodeRepository.AddNodeAsync(addNode);
+    }
 
     public Task<Result<Node>> GetNodeFromDefineLocation(Location location)
         => nodeRepository.GetNodeFromDefineLocation(location);

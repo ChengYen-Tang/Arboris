@@ -483,4 +483,23 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             return Result.Fail("Node location not found");
         return NodeId;
     }
+
+    public async Task<Result<Guid>> CheckNodeExists(Models.Analyze.CXX.AddNode addNode)
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        Node? node = await dbContext.Cxx_Nodes
+            .Include(item => item.DefineLocation)
+            .Include(item => item.ImplementationLocation)
+            .FirstOrDefaultAsync(item => item.ProjectId == addNode.ProjectId && item.Spelling == addNode.Spelling && item.CxType == addNode.CxType && item.NameSpace == addNode.NameSpace);
+
+        if (node is null)
+            return Result.Fail<Guid>("Node not found");
+
+        if (addNode.DefineLocation is not null && node.DefineLocation is not null && addNode.DefineLocation.FilePath == node.DefineLocation.FilePath && addNode.DefineLocation.StartLine == node.DefineLocation.StartLine && addNode.DefineLocation.EndLine == node.DefineLocation.EndLine)
+            return node.Id;
+        if (addNode.ImplementationLocation is not null && node.ImplementationLocation is not null && addNode.ImplementationLocation.FilePath == node.ImplementationLocation.FilePath && addNode.ImplementationLocation.StartLine == node.ImplementationLocation.StartLine && addNode.ImplementationLocation.EndLine == node.ImplementationLocation.EndLine)
+            return node.Id;
+
+        return Result.Fail<Guid>("Node not found");
+    }
 }

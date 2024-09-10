@@ -6,6 +6,7 @@ namespace Arboris.Repositories;
 
 public interface ICxxRepository
 {
+    Task<Result<Guid>> CheckNodeExists(AddNode addNode);
     Task<Guid> AddNodeAsync(AddNode addNode);
     Task<Result<Node>> GetNodeFromDefineLocation(Location location);
     Task<Result> UpdateNodeAsync(Node node);
