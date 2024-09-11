@@ -16,13 +16,22 @@ public class CxxController(ILogger<CxxController> logger, CxxAggregate cxxAggreg
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> UpdateDescription(Guid id, string description)
     {
-        Result result = await cxxAggregate.UpdateLLMDescriptionAsync(id, description);
-        if (result.IsFailed)
+        try
+        {
+            Result result = await cxxAggregate.UpdateLLMDescriptionAsync(id, description);
+            if (result.IsFailed)
+            {
+                Guid errorId = Guid.NewGuid();
+                string message = string.Join(',', result.Errors.Select(item => item.Message));
+                logger.LogWarning("Error Id: {ErrId}, cxxAggregate.UpdateLLMDescriptionAsync({Id}) Failed, Error message: {Message}", errorId, id, message);
+                return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
+            }
+        }
+        catch (Exception ex)
         {
             Guid errorId = Guid.NewGuid();
-            string message = string.Join(',', result.Errors.Select(item => item.Message));
-            logger.LogError("Error Id: {ErrId}, cxxAggregate.UpdateLLMDescriptionAsync({Id}) Failed, Error message: {Message}", errorId, id, message);
-            return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
+            logger.LogError(ex, "Error in cxxAggregate.UpdateLLMDescriptionAsync({Id}, {Description})", id, description);
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
         return Ok();
     }
@@ -34,15 +43,24 @@ public class CxxController(ILogger<CxxController> logger, CxxAggregate cxxAggreg
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetGraphForDescription(Guid id)
     {
-        Result<ForDescriptionGraph> result = await cxxAggregate.GetGraphForDescription(id);
-        if (result.IsFailed)
+        try
+        {
+            Result<ForDescriptionGraph> result = await cxxAggregate.GetGraphForDescription(id);
+            if (result.IsFailed)
+            {
+                Guid errorId = Guid.NewGuid();
+                string message = string.Join(',', result.Errors.Select(item => item.Message));
+                logger.LogWarning("Error Id: {ErrId}, cxxAggregate.GetGraphForDescription({Id}) Failed, Error message: {Message}", errorId, id, message);
+                return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
+            }
+            return Ok(result.Value);
+        }
+        catch (Exception ex)
         {
             Guid errorId = Guid.NewGuid();
-            string message = string.Join(',', result.Errors.Select(item => item.Message));
-            logger.LogError("Error Id: {ErrId}, cxxAggregate.GetGraphForDescription({Id}) Failed, Error message: {Message}", errorId, id, message);
-            return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
+            logger.LogError(ex, "Error in cxxAggregate.GetGraphForDescription({Id})", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
-        return Ok(result.Value);
     }
 
     [HttpGet]
@@ -52,14 +70,23 @@ public class CxxController(ILogger<CxxController> logger, CxxAggregate cxxAggreg
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> GetGraphForUnitTest(Guid id)
     {
-        Result<ForUnitTestGraph> result = await cxxAggregate.GetGraphForUnitTest(id);
-        if (result.IsFailed)
+        try
+        {
+            Result<ForUnitTestGraph> result = await cxxAggregate.GetGraphForUnitTest(id);
+            if (result.IsFailed)
+            {
+                Guid errorId = Guid.NewGuid();
+                string message = string.Join(',', result.Errors.Select(item => item.Message));
+                logger.LogWarning("Error Id: {ErrId}, cxxAggregate.GetGraphForUnitTest({Id}) Failed, Error message: {Message}", errorId, id, message);
+                return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
+            }
+            return Ok(result.Value);
+        }
+        catch (Exception ex)
         {
             Guid errorId = Guid.NewGuid();
-            string message = string.Join(',', result.Errors.Select(item => item.Message));
-            logger.LogError("Error Id: {ErrId}, cxxAggregate.GetGraphForUnitTest({Id}) Failed, Error message: {Message}", errorId, id, message);
-            return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
+            logger.LogError(ex, "Error in cxxAggregate.GetGraphForUnitTest({Id})", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
-        return Ok(result.Value);
     }
 }

@@ -55,7 +55,7 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
     {
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
         return await dbContext.Cxx_Nodes.Where(item => item.CursorKindSpelling == "ClassDecl" || item.CursorKindSpelling == "StructDecl")
-            .Select(item => new Models.Analyze.CXX.NodeInfo(item.CursorKindSpelling, item.Spelling, item.CxType, item.NameSpace))
+            .Select(item => new Models.Analyze.CXX.NodeInfo(item.Id, item.CursorKindSpelling, item.Spelling, item.CxType, item.NameSpace))
             .Distinct()
             .ToArrayAsync();
     }
@@ -501,5 +501,24 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             return node.Id;
 
         return Result.Fail<Guid>("Node not found");
+    }
+
+    public async Task<Models.Analyze.CXX.NodeInfo[]> GetNodesFromProjectAsync(Guid projectId)
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        return await dbContext.Cxx_Nodes
+            .Where(item => item.ProjectId == projectId)
+            .Select(item => new Models.Analyze.CXX.NodeInfo(item.Id, item.CursorKindSpelling, item.Spelling, item.CxType, item.NameSpace))
+            .ToArrayAsync();
+    }
+
+    public async Task<string?> GetClassFromNodeAsync(Guid nodeId)
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        return await dbContext.Cxx_NodeMembers
+            .Include(item => item.Node)
+            .Where(item => item.MemberId == nodeId)
+            .Select(item => item.Node.Spelling)
+            .FirstOrDefaultAsync();
     }
 }

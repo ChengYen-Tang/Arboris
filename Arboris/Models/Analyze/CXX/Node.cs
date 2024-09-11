@@ -13,4 +13,4 @@ public class Node
     public Location? ImplementationLocation { get; set; }
 }
 
-public record NodeInfo(string? CursorKindSpelling, string? Spelling, string? CxType, string? NameSpace);
+public record NodeInfo(Guid Id, string? CursorKindSpelling, string? Spelling, string? CxType, string? NameSpace);

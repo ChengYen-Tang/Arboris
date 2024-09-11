@@ -1,5 +1,6 @@
 ﻿using Arboris.Aggregate;
 using Arboris.Analyze.CXX;
+using Arboris.Models;
 using Arboris.Models.Graph.CXX;
 using Arboris.Repositories;
 using FluentResults;
@@ -10,7 +11,7 @@ namespace Arboris.Service.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class ProjectController(ILogger<ProjectController> logger, IProjectRepository projectRepository, ClangFactory clangFactory, CxxAggregate cxxAggregate) : ControllerBase
+public class ProjectController(ILogger<ProjectController> logger, IProjectRepository projectRepository, ClangFactory clangFactory, ProjectAggregate projectAggregate, CxxAggregate cxxAggregate) : ControllerBase
 {
     private static readonly string cacheDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Storage");
 
@@ -46,13 +47,22 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
             return BadRequest("Only .zip files are allowed.");
         }
 
-        Result result = await projectRepository.CreateProjectAsync(id);
-        if (result.IsFailed)
+        try
+        {
+            Result result = await projectRepository.CreateProjectAsync(id);
+            if (result.IsFailed)
+            {
+                Guid errorId = Guid.NewGuid();
+                string errorMessages = string.Join(',', result.Errors.Select(item => item.Message));
+                logger.LogWarning("Error Id: {ErrId}, projectRepository.CreateProjectAsync({Id}), Error message: {ErrorMessage}", errorId, id, errorMessages);
+                return StatusCode(StatusCodes.Status400BadRequest, $"Error Id: {errorId}, Error message: {errorMessages}");
+            }
+        }
+        catch (Exception ex)
         {
             Guid errorId = Guid.NewGuid();
-            string errorMessages = string.Join(',', result.Errors.Select(item => item.Message));
-            logger.LogError("Error Id: {ErrId}, projectRepository.CreateProjectAsync({Id}), Error message: {ErrorMessage}", errorId, id, errorMessages);
-            return StatusCode(StatusCodes.Status400BadRequest, $"Error Id: {errorId}, Error message: {errorMessages}");
+            logger.LogError(ex, "Error Id: {ErrId}, projectRepository.CreateProjectAsync({Id}) Failed, Error message: {Message}", errorId, id, ex.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
 
         string projectDirectory = Path.Combine(cacheDirectory, id.ToString());
@@ -70,7 +80,7 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
             Guid errorId = Guid.NewGuid();
             if (ex is UnauthorizedAccessException or NotSupportedException or InvalidDataException)
             {
-                logger.LogError(ex, "Error Id: {ErrId}, ZipFile Failed", errorId);
+                logger.LogWarning(ex, "Error Id: {ErrId}, ZipFile Failed", errorId);
                 return StatusCode(StatusCodes.Status400BadRequest, $"Error Id: {errorId}, Error message: {ex.Message}");
             }
 
@@ -93,16 +103,26 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
         }
 
         Directory.Delete(projectDirectory, true);
-        Result<OverallGraph> overallGraph = await cxxAggregate.GetOverallGraphAsync(id);
-        if (overallGraph.IsFailed)
+        try
+        {
+            Result<OverallGraph> overallGraph = await cxxAggregate.GetOverallGraphAsync(id);
+            if (overallGraph.IsFailed)
+            {
+                _ = await projectRepository.DeleteProjectAsync(id);
+                Guid errorId = Guid.NewGuid();
+                logger.LogError("Error Id: {ErrId}, cxxAggregate.GetOverallGraphAsync Failed, Error message: {Message}", errorId, string.Join(',', overallGraph.Errors.Select(item => item.Message)));
+                return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
+            }
+
+            return Ok(overallGraph.Value);
+        }
+        catch (Exception ex)
         {
             _ = await projectRepository.DeleteProjectAsync(id);
             Guid errorId = Guid.NewGuid();
-            logger.LogError("Error Id: {ErrId}, cxxAggregate.GetOverallGraphAsync Failed, Error message: {Message}", errorId, string.Join(',', overallGraph.Errors.Select(item => item.Message)));
+            logger.LogError(ex, "Error Id: {ErrId}, cxxAggregate.GetOverallGraphAsync Failed, Error message: {Message}", errorId, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
-
-        return Ok(overallGraph.Value);
     }
 
     /// <summary>
@@ -117,15 +137,53 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Delete(Guid id)
     {
-        Result result = await projectRepository.DeleteProjectAsync(id);
-        if (result.IsFailed)
+        try
+        {
+            Result result = await projectRepository.DeleteProjectAsync(id);
+            if (result.IsFailed)
+            {
+                Guid errorId = Guid.NewGuid();
+                string message = string.Join(',', result.Errors.Select(item => item.Message));
+                logger.LogWarning("Error Id: {ErrId}, projectRepository.DeleteProjectAsync({Id}) Failed, Error message: {Message}", errorId, id, message);
+                return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
+            }
+        }
+        catch (Exception ex)
         {
             Guid errorId = Guid.NewGuid();
-            string message = string.Join(',', result.Errors.Select(item => item.Message));
-            logger.LogError("Error Id: {ErrId}, projectRepository.DeleteProjectAsync({Id}) Failed, Error message: {Message}", errorId, id, message);
-            return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
+            logger.LogError(ex, "Error Id: {ErrId}, projectRepository.DeleteProjectAsync({Id}) Failed, Error message: {Message}", errorId, id, ex.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
 
         return Ok();
+    }
+
+    [HttpGet]
+    [Route("GetReport")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetReport(Guid id)
+    {
+        Result<ProjectReport[]> result;
+        try
+        {
+            result = await projectAggregate.GetReportAsync(id);
+            if (result.IsFailed)
+            {
+                Guid errorId = Guid.NewGuid();
+                string message = string.Join(',', result.Errors.Select(item => item.Message));
+                logger.LogWarning("Error Id: {ErrId}, projectRepository.GetReportAsync({Id}) Failed, Error message: {Message}", errorId, id, message);
+                return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Guid errorId = Guid.NewGuid();
+            logger.LogError(ex, "Error Id: {ErrId}, projectRepository.GetReportAsync({Id}) Failed, Error message: {Message}", errorId, id, ex.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
+        }
+
+        return Ok(result.Value);
     }
 }
