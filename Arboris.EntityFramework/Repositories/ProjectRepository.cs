@@ -30,6 +30,16 @@ public class ProjectRepository(IDbContextFactory<ArborisDbContext> dbContextFact
         return Result.Ok();
     }
 
+    public async Task DeleteTooOldProjectAsync(int days)
+    {
+        using ArborisDbContext db = await dbContextFactory.CreateDbContextAsync();
+        Project[] oldProject = await db.Projects
+            .Where(item => item.CreateTime < DateTime.Now.AddDays(-days))
+            .ToArrayAsync();
+        db.Projects.RemoveRange(oldProject);
+        await db.SaveChangesAsync();
+    }
+
     public async Task<Result<GetProject>> GetProjectAsync(Guid id)
     {
         using ArborisDbContext db = await dbContextFactory.CreateDbContextAsync();
