@@ -12,8 +12,9 @@ using System.Text.Encodings.Web;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Configuration.AddJsonFile("Config/appsettings.json", optional: false, reloadOnChange: true);
 
+// Add services to the container.
 builder.Services.AddPooledDbContextFactory<ArborisDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
@@ -26,6 +27,7 @@ builder.Services.AddSingleton<GarbageCollection>();
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping;
+    options.JsonSerializerOptions.PropertyNamingPolicy = null;
 });
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();

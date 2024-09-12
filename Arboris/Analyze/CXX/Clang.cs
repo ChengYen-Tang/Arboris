@@ -74,7 +74,7 @@ public class Clang : IDisposable
 
     private async Task ScanNode(IReadOnlyList<string> headerFiles)
     {
-        foreach (string headerFile in headerFiles)
+        await Parallel.ForEachAsync(headerFiles, async (headerFile, _) =>
         {
             CXTranslationUnit translationUnit = CXTranslationUnit.CreateFromSourceFile(index.Handle, headerFile, clangArgs, []);
             using TranslationUnit tu = TranslationUnit.GetOrCreate(translationUnit);
@@ -83,12 +83,12 @@ public class Clang : IDisposable
             {
                 await ScanAndInsertNode(cursor);
             }
-        }
+        });
     }
 
     private async Task ScanLink(IReadOnlyList<string> headerFiles)
     {
-        foreach (string headerFile in headerFiles)
+        await Parallel.ForEachAsync(headerFiles, async (headerFile, _) =>
         {
             CXTranslationUnit translationUnit = CXTranslationUnit.CreateFromSourceFile(index.Handle, headerFile, clangArgs, []);
             using TranslationUnit tu = TranslationUnit.GetOrCreate(translationUnit);
@@ -98,7 +98,7 @@ public class Clang : IDisposable
                 await LinkNodeDependency(cursor);
                 await ScanAndLinkNodeType(cursor);
             }
-        }
+        });
     }
 
     private async Task ScanAndInsertNode(Cursor cursor, string? nameSpace = null)
@@ -117,7 +117,7 @@ public class Clang : IDisposable
         if (validCursorKind.Contains(cursor.CursorKind))
         {
             location.SourceCode = string.Join(Environment.NewLine, File.ReadLines(location.FilePath).Skip((int)startLine - 1).Take((int)endLine - (int)startLine + 1));
-            location.CodeDefine = GetDisplayName(cursor, location).TrimStart().TrimEnd(' ', '{', '\n', '\r');
+            location.CodeDefine = GetDisplayName(cursor, location).TrimStart().TrimEnd(' ', '{', '\n', '\r', '\t');
             if (cursor is Decl decl)
             {
                 decl.CanonicalDecl.Extent.Start.GetExpansionLocation(out CXFile defineFIle, out uint defineStartLine, out uint _, out uint _);

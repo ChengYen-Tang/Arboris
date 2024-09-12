@@ -24,7 +24,9 @@ public class ProjectAggregate(ICxxRepository cxxRepository, IProjectRepository p
             if (!string.IsNullOrEmpty(className))
                 sb.Append(className).Append("::");
             sb.Append(node.Spelling);
-            return new ProjectReport(node.Id, sb.ToString(), node.Spelling, node.CxType, className, node.NameSpace);
+
+            string? description = string.IsNullOrWhiteSpace(node.UserDescription) ? node.LLMDescription : node.UserDescription;
+            return new ProjectReport(node.Id, sb.ToString(), node.Spelling, node.CxType, className, node.NameSpace, description);
         }).ToArray();
 
         return report;
