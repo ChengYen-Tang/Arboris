@@ -89,4 +89,31 @@ public class CxxController(ILogger<CxxController> logger, CxxAggregate cxxAggreg
             return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
     }
+
+    [HttpGet]
+    [Route("GetFuncInfoForUtService")]
+    [ProducesResponseType(typeof(ForUtServiceFuncInfo), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetFuncInfoForUtService(Guid id)
+    {
+        try
+        {
+            Result<ForUtServiceFuncInfo> result = await cxxAggregate.GetFuncInfoForUtService(id);
+            if (result.IsFailed)
+            {
+                Guid errorId = Guid.NewGuid();
+                string message = string.Join(',', result.Errors.Select(item => item.Message));
+                logger.LogWarning("Error Id: {ErrId}, cxxAggregate.GetFuncInfoForUtService({Id}) Failed, Error message: {Message}", errorId, id, message);
+                return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
+            }
+            return Ok(result.Value);
+        }
+        catch (Exception ex)
+        {
+            Guid errorId = Guid.NewGuid();
+            logger.LogError(ex, "Error in cxxAggregate.GetFuncInfoForUtService({Id})", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
+        }
+    }
 }

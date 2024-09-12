@@ -14,6 +14,7 @@ public class Clang : IDisposable
     private readonly ILogger logger;
     private readonly Guid projectId;
     private readonly string projectPath;
+    private readonly Uri projectUri;
     private readonly CxxAggregate cxxAggregate;
     private bool disposedValue;
     private readonly Index index;
@@ -35,6 +36,7 @@ public class Clang : IDisposable
     {
         this.projectId = projectId;
         this.projectPath = projectPath;
+        projectUri = new Uri(projectPath);
         this.cxxAggregate = cxxAggregate;
         this.logger = logger;
         index = Index.Create(false, false);
@@ -109,21 +111,23 @@ public class Clang : IDisposable
         cursor.Extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint startColumn, out uint _);
         cursor.Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint endColumn, out uint _);
         using CXString fileName = file.Name;
-        Location location = new(fileName.ToString(), startLine, endLine);
-        logger.LogDebug("Location-> StartLine: {StartLine}, EndLine: {EndLine}, StartColumn: {StartColumn}, EndColumn: {EndColumn}, FileName: {FileName}", startLine, endLine, startColumn, endColumn, fileName);
+        string fullFileName = fileName.ToString();
+        Location fullLocation = new(fullFileName, startLine, endLine);
+        Location location = new(GetRelativePath(fullFileName), startLine, endLine);
+        logger.LogDebug("Location-> StartLine: {StartLine}, EndLine: {EndLine}, StartColumn: {StartColumn}, EndColumn: {EndColumn}, FileName: {FileName}", startLine, endLine, startColumn, endColumn, location.FilePath);
 
         using CXString cXType = cursor.Handle.Type.Spelling;
 
         if (validCursorKind.Contains(cursor.CursorKind))
         {
-            location.SourceCode = string.Join(Environment.NewLine, File.ReadLines(location.FilePath).Skip((int)startLine - 1).Take((int)endLine - (int)startLine + 1));
-            location.CodeDefine = GetDisplayName(cursor, location).TrimStart().TrimEnd(' ', '{', '\n', '\r', '\t');
+            location.SourceCode = string.Join(Environment.NewLine, File.ReadLines(fullLocation.FilePath).Skip((int)startLine - 1).Take((int)endLine - (int)startLine + 1));
+            location.DisplayName = GetDisplayName(cursor, fullLocation).TrimStart().TrimEnd(' ', '{', '\n', '\r', '\t');
             if (cursor is Decl decl)
             {
                 decl.CanonicalDecl.Extent.Start.GetExpansionLocation(out CXFile defineFIle, out uint defineStartLine, out uint _, out uint _);
                 decl.CanonicalDecl.Extent.End.GetExpansionLocation(out CXFile _, out uint defineEndLine, out uint _, out uint _);
                 using CXString defineFileName = defineFIle.Name;
-                Location defineLocation = new(defineFileName.ToString(), defineStartLine, defineEndLine);
+                Location defineLocation = new(GetRelativePath(defineFileName.ToString()), defineStartLine, defineEndLine);
 
                 if (cursor.CursorKind == CXCursorKind.CXCursor_ClassDecl || cursor.CursorKind == CXCursorKind.CXCursor_StructDecl || defineLocation == location)
                 {
@@ -191,15 +195,15 @@ public class Clang : IDisposable
         cursor.Extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint startColumn, out uint _);
         cursor.Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint endColumn, out uint _);
         using CXString fileName = file.Name;
-        Location location = new(fileName.ToString(), startLine, endLine);
-        logger.LogDebug("Location-> StartLine: {StartLine}, EndLine: {EndLine}, StartColumn: {StartColumn}, EndColumn: {EndColumn}, FileName: {FileName}", startLine, endLine, startColumn, endColumn, fileName);
+        Location location = new(GetRelativePath(fileName.ToString()), startLine, endLine);
+        logger.LogDebug("Location-> StartLine: {StartLine}, EndLine: {EndLine}, StartColumn: {StartColumn}, EndColumn: {EndColumn}, FileName: {FileName}", startLine, endLine, startColumn, endColumn, location.FilePath);
 
         if (validMemberCursorKind.Contains(cursor.CursorKind) && cursor is Decl decl)
         {
             decl.CanonicalDecl.Extent.Start.GetExpansionLocation(out CXFile defineFIle, out uint defineStartLine, out uint _, out uint _);
             decl.CanonicalDecl.Extent.End.GetExpansionLocation(out CXFile _, out uint defineEndLine, out uint _, out uint _);
             using CXString defineFileName = defineFIle.Name;
-            Location defineLocation = new(defineFileName.ToString(), defineStartLine, defineEndLine);
+            Location defineLocation = new(GetRelativePath(defineFileName.ToString()), defineStartLine, defineEndLine);
             await ScanAndLinkNodeType(cursor, defineLocation, defineLocation != location);
         }
 
@@ -227,7 +231,7 @@ public class Clang : IDisposable
                 decl.Extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint _, out uint _);
                 decl.Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint _, out uint _);
                 using CXString fileName = file.Name;
-                Location csLocation = new(fileName.ToString(), startLine, endLine);
+                Location csLocation = new(GetRelativePath(fileName.ToString()), startLine, endLine);
                 await LinkNodeDependency(child, csLocation);
             }
             else
@@ -246,7 +250,7 @@ public class Clang : IDisposable
             ((Decl)decl.LexicalDeclContext).Extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint _, out uint _);
             ((Decl)decl.LexicalDeclContext).Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint _, out uint _);
             using CXString fileName = file.Name;
-            Location classLocation = new(fileName.ToString(), startLine, endLine);
+            Location classLocation = new(GetRelativePath(fileName.ToString()), startLine, endLine);
             Result result = await cxxAggregate.LinkMemberAsync(classLocation, nodeId);
             Trace.Assert(result.IsSuccess, "ClassLocation not found");
         }
@@ -266,7 +270,7 @@ public class Clang : IDisposable
             refCursor.Referenced.Extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint _, out uint _);
             refCursor.Referenced.Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint _, out uint _);
             using CXString fileName = file.Name;
-            Location location = new(fileName.ToString(), startLine, endLine);
+            Location location = new(GetRelativePath(fileName.ToString()), startLine, endLine);
             if (!VerifyLocation(location) || !VerifyFromNodeOutOfSelfNode(compoundStmtLocation, location))
                 return;
             logger.LogDebug("    CXCursor_TypeRef -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, fileName);
@@ -284,20 +288,20 @@ public class Clang : IDisposable
             callExpr.CalleeDecl.Extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint _, out uint _);
             callExpr.CalleeDecl.Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint _, out uint _);
             using CXString fileName = file.Name;
-            Location location = new(fileName.ToString(), startLine, endLine);
+            Location location = new(GetRelativePath(fileName.ToString()), startLine, endLine);
 
             if (!VerifyLocation(location) || !VerifyFromNodeOutOfSelfNode(compoundStmtLocation, location))
                 return;
 
             if (cursor.Spelling == "operator=" && cursor is CXXOperatorCallExpr)
             {
-                logger.LogDebug("    CXCursor_CallExpr -> operator= -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, fileName);
+                logger.LogDebug("    CXCursor_CallExpr -> operator= -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, location.FilePath);
                 Result result = await cxxAggregate.LinkDependencyCallExprOperatorEqualAsync(compoundStmtLocation, location);
                 PrintErrorMessage(result);
             }
             else
             {
-                logger.LogDebug("    CXCursor_CallExpr -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, fileName);
+                logger.LogDebug("    CXCursor_CallExpr -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, location.FilePath);
                 Result result = await cxxAggregate.LinkDependencyAsync(compoundStmtLocation, location);
                 PrintErrorMessage(result);
             }
@@ -313,12 +317,12 @@ public class Clang : IDisposable
             memberExpr.MemberDecl.Extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint _, out uint _);
             memberExpr.MemberDecl.Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint _, out uint _);
             using CXString fileName = file.Name;
-            Location location = new(fileName.ToString(), startLine, endLine);
+            Location location = new(GetRelativePath(fileName.ToString()), startLine, endLine);
 
             if (!VerifyLocation(location) || !VerifyFromNodeOutOfSelfNode(compoundStmtLocation, location))
                 return;
 
-            logger.LogDebug("    CXCursor_MemberRefExpr -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, fileName);
+            logger.LogDebug("    CXCursor_MemberRefExpr -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, location.FilePath);
             Result result = await cxxAggregate.LinkDependencyAsync(compoundStmtLocation, location);
             PrintErrorMessage(result);
         }
@@ -335,11 +339,11 @@ public class Clang : IDisposable
                 extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint _, out uint _);
                 extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint _, out uint _);
                 using CXString fileName = file.Name;
-                Location location = new(fileName.ToString(), startLine, endLine);
+                Location location = new(GetRelativePath(fileName.ToString()), startLine, endLine);
                 if (!VerifyLocation(location) || !VerifyFromNodeOutOfSelfNode(compoundStmtLocation, location))
                     return;
 
-                logger.LogDebug("    CXCursor_OverloadedDeclRef -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, fileName);
+                logger.LogDebug("    CXCursor_OverloadedDeclRef -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, location.FilePath);
                 Result result = await cxxAggregate.LinkDependencyAsync(compoundStmtLocation, location);
                 PrintErrorMessage(result);
             }
@@ -359,7 +363,7 @@ public class Clang : IDisposable
             refCursor.Referenced.Extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint _, out uint _);
             refCursor.Referenced.Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint _, out uint _);
             using CXString fileName = file.Name;
-            Location location = new(fileName.ToString(), startLine, endLine);
+            Location location = new(GetRelativePath(fileName.ToString()), startLine, endLine);
             if (VerifyLocation(location))
                 await cxxAggregate.LinkTypeAsync(defineLocation, location, isImplementation);
         }
@@ -367,6 +371,9 @@ public class Clang : IDisposable
         foreach (var child in cursor.CursorChildren)
             await ScanAndLinkNodeType(child, defineLocation, isImplementation);
     }
+
+    private string GetRelativePath(string path)
+        => Uri.UnescapeDataString(projectUri.MakeRelativeUri(new Uri(path)).ToString()).Replace('\\', '/');
 
     private static bool VerifyLocation(Location location)
         => !(string.IsNullOrEmpty(location.FilePath) || location.StartLine == 0 || location.EndLine == 0);

@@ -5,7 +5,7 @@ public class Location
     public uint StartLine { get; init; }
     public uint EndLine { get; init; }
     public string? SourceCode { get; set; }
-    public string? CodeDefine { get; set; }
+    public string? DisplayName { get; set; }
 
     public Location(string filePath, uint startLine, uint endLine)
         => (FilePath, StartLine, EndLine) = (filePath, startLine, endLine);

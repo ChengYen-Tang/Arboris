@@ -29,4 +29,5 @@ public interface ICxxRepository
     Task<Result<OverViewNode[]>> GetNodeDependenciesAsync(Guid nodeId);
     Task<NodeInfo[]> GetNodesFromProjectAsync(Guid projectId);
     Task<string?> GetClassFromNodeAsync(Guid nodeId);
+    Task<Result<Node>> GetNode(Guid nodeId);
 }

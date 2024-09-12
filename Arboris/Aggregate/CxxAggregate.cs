@@ -149,4 +149,20 @@ public class CxxAggregate(ICxxRepository nodeRepository)
             NodeDependencies = NodeDependenciesResult.Value
         };
     }
+
+    public async Task<Result<ForUtServiceFuncInfo>> GetFuncInfoForUtService(Guid id)
+    {
+        Task<Result<Node>> nodeTask = nodeRepository.GetNode(id);
+        Task<string?> classNameTask = nodeRepository.GetClassFromNodeAsync(id);
+        await Task.WhenAll(nodeTask, classNameTask);
+
+        Result<Node> nodeResult = nodeTask.Result;
+        string? className = classNameTask.Result;
+
+        if (nodeResult.IsFailed)
+            return nodeResult.ToResult();
+
+        string filePath = nodeResult.Value.ImplementationLocation is not null ? nodeResult.Value.ImplementationLocation.FilePath : nodeResult.Value.DefineLocation!.FilePath;
+        return new ForUtServiceFuncInfo(filePath, nodeResult.Value.Spelling, nodeResult.Value.CxType, className, nodeResult.Value.CursorKindSpelling);
+    }
 }
