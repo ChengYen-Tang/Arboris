@@ -1,5 +1,6 @@
 ﻿using Arboris.Aggregate;
 using Arboris.Analyze.CXX;
+using Arboris.Domain;
 using Arboris.Models;
 using Arboris.Models.Graph.CXX;
 using Arboris.Repositories;
@@ -11,7 +12,7 @@ namespace Arboris.Service.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class ProjectController(ILogger<ProjectController> logger, IProjectRepository projectRepository, ClangFactory clangFactory, ProjectAggregate projectAggregate, CxxAggregate cxxAggregate) : ControllerBase
+public class ProjectController(ILogger<ProjectController> logger, IProjectRepository projectRepository, Project project, ClangFactory clangFactory, ProjectAggregate projectAggregate, CxxAggregate cxxAggregate) : ControllerBase
 {
     private static readonly string cacheDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Storage");
 
@@ -19,7 +20,7 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
     /// Create a project
     /// </summary>
     /// <param name="id"> Project id </param>
-    /// <param name="file"> Project file </param>
+    /// <param name="projectFile"> Project file </param>
     /// <returns></returns>
     [HttpPost]
     [Route("Create")]
@@ -27,24 +28,38 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> Create(Guid id, IFormFile file)
+    public async Task<IActionResult> Create(Guid id, IFormFile projectFile, string[]? excludePaths, IFormFile? reportFile)
     {
-        if (file == null || file.Length == 0)
+        if (projectFile == null || projectFile.Length == 0)
         {
-            return BadRequest("No file uploaded.");
+            return BadRequest("projectFile: No file uploaded.");
         }
 
-        if (!(file.ContentType.Contains("zip") || file.ContentType.Contains("ZIP")))
+        if (!(projectFile.ContentType.Contains("zip") || projectFile.ContentType.Contains("ZIP")))
         {
-            return BadRequest("Only .zip files are allowed.");
+            return BadRequest("projectFile: Only .zip files are allowed.");
         }
 
         var allowedExtensions = new[] { ".zip" };
-        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        var extension = Path.GetExtension(projectFile.FileName).ToLowerInvariant();
 
         if (!allowedExtensions.Contains(extension))
         {
-            return BadRequest("Only .zip files are allowed.");
+            return BadRequest("projectFile: Only .zip files are allowed.");
+        }
+
+        if (reportFile is not null && projectFile.Length > 0)
+        {
+            if (!(reportFile.ContentType.Contains("zip") || reportFile.ContentType.Contains("ZIP")))
+            {
+                return BadRequest("reportFile: Only .zip files are allowed.");
+            }
+
+            extension = Path.GetExtension(reportFile.FileName).ToLowerInvariant();
+            if (!allowedExtensions.Contains(extension))
+            {
+                return BadRequest("reportFile: Only .zip files are allowed.");
+            }
         }
 
         try
@@ -65,13 +80,17 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
             return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
 
-        string projectDirectory = Path.Combine(cacheDirectory, id.ToString());
-        if (Directory.Exists(projectDirectory))
-            Directory.Delete(projectDirectory, true);
+        string projectCacheDirectory = Path.Combine(cacheDirectory, id.ToString());
+        if (Directory.Exists(projectCacheDirectory))
+            Directory.Delete(projectCacheDirectory, true);
+        Directory.CreateDirectory(projectCacheDirectory);
+        string projectDirectory = Path.Combine(projectCacheDirectory, "Project");
+        string repotDirectory = Path.Combine(projectCacheDirectory, "Report");
         Directory.CreateDirectory(projectDirectory);
+        Directory.CreateDirectory(repotDirectory);
         try
         {
-            ZipFile.ExtractToDirectory(file.OpenReadStream(), projectDirectory);
+            ZipFile.ExtractToDirectory(projectFile.OpenReadStream(), projectDirectory);
         }
         catch (Exception ex)
         {
@@ -88,7 +107,7 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
             return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
 
-        using Clang clang = clangFactory.Create(id, projectDirectory);
+        using Clang clang = clangFactory.Create(id, projectDirectory, excludePaths);
         try
         {
             await clang.Scan();
@@ -102,7 +121,27 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
             return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
 
-        Directory.Delete(projectDirectory, true);
+        if (reportFile is not null && projectFile.Length > 0)
+        {
+            try
+            {
+                ZipFile.ExtractToDirectory(reportFile.OpenReadStream(), repotDirectory);
+                await project.SyncFromReport(id, repotDirectory);
+            }
+            catch (Exception ex)
+            {
+                Guid errorId = Guid.NewGuid();
+                if (ex is UnauthorizedAccessException or NotSupportedException or InvalidDataException)
+                {
+                    logger.LogWarning(ex, "Error Id: {ErrId}, ZipFile Failed", errorId);
+                    return StatusCode(StatusCodes.Status400BadRequest, $"Error Id: {errorId}, Error message: {ex.Message}");
+                }
+
+                logger.LogError(ex, "Error Id: {ErrId}, Process report failed, Error message: {Message}", errorId, ex.Message);
+            }
+        }
+
+        Directory.Delete(projectCacheDirectory, true);
         try
         {
             Result<OverallGraph> overallGraph = await cxxAggregate.GetOverallGraphAsync(id);

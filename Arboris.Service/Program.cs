@@ -22,6 +22,7 @@ builder.Services.AddScoped<ICxxRepository, CxxRepository>();
 builder.Services.AddScoped<ProjectAggregate>();
 builder.Services.AddScoped<CxxAggregate>();
 builder.Services.AddScoped<ClangFactory>();
+builder.Services.AddScoped<Arboris.Domain.Project>();
 builder.Services.AddSingleton<GarbageCollection>();
 
 builder.Services.AddControllers().AddJsonOptions(options =>

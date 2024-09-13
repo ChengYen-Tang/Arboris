@@ -550,4 +550,24 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             ImplementationLocation = implementationLocation
         };
     }
+
+    public async Task<Result> UpdateUserDescription(Guid projectId, string? nameSpace, string? className, string? spelling, string? cxType, string? description)
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        Node? node = string.IsNullOrEmpty(className) ?
+            await dbContext.Cxx_Nodes.FirstOrDefaultAsync(item => item.ProjectId == projectId && item.NameSpace == nameSpace && item.Spelling == spelling && item.CxType == cxType) :
+            await dbContext.Cxx_NodeMembers
+            .Include(item => item.Node)
+            .Include(item => item.Member)
+            .Where(item => item.Member.ProjectId == projectId && item.Member.NameSpace == nameSpace && item.Member.Spelling == spelling && item.Member.CxType == cxType && item.Node.Spelling == className)
+            .Select(item => item.Member).FirstOrDefaultAsync();
+
+        if (node is null)
+            return Result.Fail("Node not found");
+
+        node.UserDescription = description;
+        dbContext.Cxx_Nodes.Update(node);
+        await dbContext.SaveChangesAsync();
+        return Result.Ok();
+    }
 }

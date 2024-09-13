@@ -7,12 +7,12 @@ namespace Arboris.Aggregate;
 
 public class CxxAggregate(ICxxRepository nodeRepository)
 {
-    public async Task<Guid> AddNodeAsync(AddNode addNode)
+    public async Task<(Guid id, bool isExist)> AddNodeAsync(AddNode addNode)
     {
         Result<Guid> checkNodeExistsResult = await nodeRepository.CheckNodeExists(addNode);
         if (checkNodeExistsResult.IsSuccess)
-            return checkNodeExistsResult.Value;
-        return await nodeRepository.AddNodeAsync(addNode);
+            return (checkNodeExistsResult.Value, true);
+        return (await nodeRepository.AddNodeAsync(addNode), false);
     }
 
     public Task<Result<Node>> GetNodeFromDefineLocation(Location location)
@@ -165,4 +165,7 @@ public class CxxAggregate(ICxxRepository nodeRepository)
         string filePath = nodeResult.Value.ImplementationLocation is not null ? nodeResult.Value.ImplementationLocation.FilePath : nodeResult.Value.DefineLocation!.FilePath;
         return new ForUtServiceFuncInfo(filePath, nodeResult.Value.Spelling, nodeResult.Value.CxType, className, nodeResult.Value.CursorKindSpelling);
     }
+
+    public Task<Result> UpdateUserDescription(Guid projectId, string? nameSpace, string? className, string? spelling, string? cxType, string? description)
+        => nodeRepository.UpdateUserDescription(projectId, nameSpace, className, spelling, cxType, description);
 }

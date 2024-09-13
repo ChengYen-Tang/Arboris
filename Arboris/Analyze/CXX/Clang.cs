@@ -19,6 +19,7 @@ public class Clang : IDisposable
     private bool disposedValue;
     private readonly Index index;
     private readonly string[] clangArgs;
+    private readonly string[]? excludePaths;
     private static readonly CXCursorKind[] validCursorKind = [
         CXCursorKind.CXCursor_ClassDecl,
         CXCursorKind.CXCursor_CXXMethod,
@@ -32,13 +33,14 @@ public class Clang : IDisposable
         CXCursorKind.CXCursor_FieldDecl,
         CXCursorKind.CXCursor_CXXMethod];
 
-    public Clang(Guid projectId, string projectPath, CxxAggregate cxxAggregate, ILogger<Clang> logger)
+    public Clang(Guid projectId, string projectPath, CxxAggregate cxxAggregate, ILogger<Clang> logger, string[]? excludePaths = null)
     {
         this.projectId = projectId;
         this.projectPath = projectPath;
         projectUri = new Uri(projectPath);
         this.cxxAggregate = cxxAggregate;
         this.logger = logger;
+        this.excludePaths = excludePaths;
         index = Index.Create(false, false);
         List<string> args = ["-std=c++14", "-xc++"];
         args.AddRange(Utils.GetDirectoriesWithFiles(projectPath, ["*.h", "*.cpp", "*.hpp"]).Select(item => $"-I{item}"));
@@ -47,9 +49,9 @@ public class Clang : IDisposable
 
     public async Task Scan()
     {
-        IReadOnlyList<string> headerFiles = Utils.GetFilesWithExtensions(projectPath, ["*.h"]);
-        IReadOnlyList<string> cppFiles = Utils.GetFilesWithExtensions(projectPath, ["*.cpp"]);
-        IReadOnlyList<string> hppFiles = Utils.GetFilesWithExtensions(projectPath, ["*.hpp"]);
+        IReadOnlyList<string> headerFiles = Utils.GetFilesWithExtensions(projectPath, ["*.h"], excludePaths);
+        IReadOnlyList<string> cppFiles = Utils.GetFilesWithExtensions(projectPath, ["*.cpp"], excludePaths);
+        IReadOnlyList<string> hppFiles = Utils.GetFilesWithExtensions(projectPath, ["*.hpp"], excludePaths);
 
         await ScanNode(headerFiles);
         await ScanNode(cppFiles);
@@ -76,7 +78,7 @@ public class Clang : IDisposable
 
     private async Task ScanNode(IReadOnlyList<string> headerFiles)
     {
-        await Parallel.ForEachAsync(headerFiles, async (headerFile, _) =>
+        foreach (string headerFile in headerFiles)
         {
             CXTranslationUnit translationUnit = CXTranslationUnit.CreateFromSourceFile(index.Handle, headerFile, clangArgs, []);
             using TranslationUnit tu = TranslationUnit.GetOrCreate(translationUnit);
@@ -85,12 +87,12 @@ public class Clang : IDisposable
             {
                 await ScanAndInsertNode(cursor);
             }
-        });
+        }
     }
 
     private async Task ScanLink(IReadOnlyList<string> headerFiles)
     {
-        await Parallel.ForEachAsync(headerFiles, async (headerFile, _) =>
+        foreach (string headerFile in headerFiles)
         {
             CXTranslationUnit translationUnit = CXTranslationUnit.CreateFromSourceFile(index.Handle, headerFile, clangArgs, []);
             using TranslationUnit tu = TranslationUnit.GetOrCreate(translationUnit);
@@ -100,7 +102,7 @@ public class Clang : IDisposable
                 await LinkNodeDependency(cursor);
                 await ScanAndLinkNodeType(cursor);
             }
-        });
+        }
     }
 
     private async Task ScanAndInsertNode(Cursor cursor, string? nameSpace = null)
@@ -242,10 +244,10 @@ public class Clang : IDisposable
     private async Task InsertNode(AddNode addNode, Decl? decl)
     {
         logger.LogDebug("Add Node-> ProjectId: {ProjectId}, CursorKindSpelling: {CursorKindSpelling}, Spelling: {Spelling}", projectId, addNode.CursorKindSpelling, addNode.Spelling);
-        Guid nodeId = await cxxAggregate.AddNodeAsync(addNode);
-        if (decl is null)
+        (Guid nodeId, bool isExist) = await cxxAggregate.AddNodeAsync(addNode);
+        if (decl is null || isExist)
             return;
-        if (decl.LexicalDeclContext is not null && ((Decl)decl.LexicalDeclContext).CursorKind == CXCursorKind.CXCursor_ClassDecl)
+        if (decl.LexicalDeclContext is not null && ((Decl)decl.LexicalDeclContext).CursorKind is CXCursorKind.CXCursor_ClassDecl or CXCursorKind.CXCursor_StructDecl)
         {
             ((Decl)decl.LexicalDeclContext).Extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint _, out uint _);
             ((Decl)decl.LexicalDeclContext).Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint _, out uint _);
@@ -421,6 +423,6 @@ public class Clang : IDisposable
 
 public class ClangFactory(CxxAggregate cxxAggregate, ILogger<Clang> logger)
 {
-    public Clang Create(Guid projectId, string path)
-        => new(projectId, path, cxxAggregate, logger);
+    public Clang Create(Guid projectId, string path, string[]? excludePaths = null)
+        => new(projectId, path, cxxAggregate, logger, excludePaths);
 }

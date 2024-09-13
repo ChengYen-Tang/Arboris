@@ -30,4 +30,5 @@ public interface ICxxRepository
     Task<NodeInfo[]> GetNodesFromProjectAsync(Guid projectId);
     Task<string?> GetClassFromNodeAsync(Guid nodeId);
     Task<Result<Node>> GetNode(Guid nodeId);
+    Task<Result> UpdateUserDescription(Guid projectId, string? nameSpace, string? className, string? spelling, string? cxType, string? description);
 }
