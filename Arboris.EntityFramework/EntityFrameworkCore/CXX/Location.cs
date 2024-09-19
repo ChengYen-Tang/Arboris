@@ -5,12 +5,23 @@ namespace Arboris.EntityFramework.EntityFrameworkCore.CXX;
 
 [Index(nameof(FilePath), nameof(StartLine))]
 [Index(nameof(FilePath), nameof(StartLine), nameof(EndLine))]
+[Index(nameof(FilePath), nameof(StartLine), nameof(EndLine), nameof(Id), nameof(NodeId))]
+[Index(nameof(Id), nameof(FilePath), nameof(StartLine))]
+[Index(nameof(Id), nameof(NodeId))]
+[Index(nameof(StartLine), nameof(EndLine), nameof(FilePath), nameof(Id), nameof(NodeId))]
+[Index(nameof(EndLine), nameof(FilePath))]
+[Index(nameof(NodeId), nameof(Id), nameof(FilePath), nameof(StartLine))]
 public class DefineLocation : Location
 {
 }
 
 [Index(nameof(FilePath), nameof(StartLine))]
 [Index(nameof(FilePath), nameof(StartLine), nameof(EndLine))]
+[Index(nameof(FilePath), nameof(StartLine), nameof(EndLine), nameof(Id), nameof(NodeId))]
+[Index(nameof(Id), nameof(FilePath), nameof(StartLine), nameof(EndLine), nameof(NodeId))]
+[Index(nameof(Id), nameof(NodeId), nameof(FilePath), nameof(StartLine))]
+[Index(nameof(StartLine), nameof(EndLine))]
+[Index(nameof(EndLine), nameof(FilePath))]
 public class ImplementationLocation : Location
 {
 }

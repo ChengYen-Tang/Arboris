@@ -15,41 +15,41 @@ public class CxxAggregate(ICxxRepository nodeRepository)
         return (await nodeRepository.AddNodeAsync(addNode), false);
     }
 
-    public Task<Result<Node>> GetNodeFromDefineLocation(Location location)
-        => nodeRepository.GetNodeFromDefineLocation(location);
+    public Task<Result<Node>> GetNodeFromDefineLocation(Guid projectId, Location location)
+        => nodeRepository.GetNodeFromDefineLocation(projectId, location);
 
     public Task<Result> UpdateNodeAsync(Node node)
         => nodeRepository.UpdateNodeAsync(node);
 
-    public Task<Result> LinkMemberAsync(Location classLocation, Guid memberId)
-        => nodeRepository.LinkMemberAsync(classLocation, memberId);
+    public Task<Result> LinkMemberAsync(Guid projectId, Location classLocation, Guid memberId)
+        => nodeRepository.LinkMemberAsync(projectId, classLocation, memberId);
 
-    public Task<Result> LinkDependencyAsync(Location nodeLocation, Location fromLocation)
-        => nodeRepository.LinkDependencyAsync(nodeLocation, fromLocation);
+    public Task<Result> LinkDependencyAsync(Guid projectId, Location nodeLocation, Location fromLocation)
+        => nodeRepository.LinkDependencyAsync(projectId, nodeLocation, fromLocation);
 
-    public Task<Result> LinkDependencyCallExprOperatorEqualAsync(Location nodeLocation, Location fromLocation)
-        => nodeRepository.LinkDependencyCallExprOperatorEqualAsync(nodeLocation, fromLocation);
+    public Task<Result> LinkDependencyCallExprOperatorEqualAsync(Guid projectId, Location nodeLocation, Location fromLocation)
+        => nodeRepository.LinkDependencyCallExprOperatorEqualAsync(projectId, nodeLocation, fromLocation);
 
-    public async Task<Result> LinkTypeAsync(Location nodeLocation, Location typeLocation, bool isImplementation)
+    public async Task<Result> LinkTypeAsync(Guid projectId, Location nodeLocation, Location typeLocation, bool isImplementation)
     {
-        Result<Node> nodeResult = await nodeRepository.GetNodeFromDefineLocation(nodeLocation);
+        Result<Node> nodeResult = await nodeRepository.GetNodeFromDefineLocation(projectId, nodeLocation);
         if (nodeResult.IsFailed)
             return nodeResult.ToResult();
 
         if (nodeResult.Value.ImplementationLocation is not null && !isImplementation)
             return Result.Ok();
 
-        return await nodeRepository.LinkTypeAsync(nodeLocation, typeLocation);
+        return await nodeRepository.LinkTypeAsync(projectId, nodeLocation, typeLocation);
     }
 
-    public Task<Result<NodeInfo[]>> GetDistinctClassAndStructNodeInfosAsync()
-        => nodeRepository.GetDistinctClassAndStructNodeInfosAsync();
+    public Task<Result<NodeInfo[]>> GetDistinctClassAndStructNodeInfosAsync(Guid projectId)
+        => nodeRepository.GetDistinctClassAndStructNodeInfosAsync(projectId);
 
-    public Task<Result> MoveTypeDeclarationLinkAsync(NodeInfo nodeInfo)
-        => nodeRepository.MoveTypeDeclarationLinkAsync(nodeInfo);
+    public Task<Result> MoveTypeDeclarationLinkAsync(Guid projectId, NodeInfo nodeInfo)
+        => nodeRepository.MoveTypeDeclarationLinkAsync(projectId, nodeInfo);
 
-    public Task<Result> RemoveTypeDeclarations()
-        => nodeRepository.RemoveTypeDeclarations();
+    public Task<Result> RemoveTypeDeclarations(Guid projectId)
+        => nodeRepository.RemoveTypeDeclarations(projectId);
 
     public async Task<Result<OverallGraph>> GetOverallGraphAsync(Guid projectId)
     {

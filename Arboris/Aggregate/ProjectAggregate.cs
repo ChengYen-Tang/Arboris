@@ -13,7 +13,7 @@ public class ProjectAggregate(ICxxRepository cxxRepository, IProjectRepository p
         Result<GetProject> projectResult = await projectRepository.GetProjectAsync(id);
         if (projectResult.IsFailed)
             return projectResult.ToResult();
-        NodeInfo[] nodes = await cxxRepository.GetNodesFromProjectAsync(id);
+        NodeInfoWithLocation[] nodes = await cxxRepository.GetNodesFromProjectAsync(id);
         ProjectReport[] report = nodes.AsParallel().Select(node =>
         {
             string? className = cxxRepository.GetClassFromNodeAsync(node.Id).Result;
@@ -25,8 +25,21 @@ public class ProjectAggregate(ICxxRepository cxxRepository, IProjectRepository p
                 sb.Append(className).Append("::");
             sb.Append(node.Spelling);
 
+            string[] relativePaths;
+
+            if (node.ImplementationLocation is not null)
+            {
+                relativePaths = new string[2];
+                relativePaths[1] = node.ImplementationLocation!.FilePath;
+            }
+            else
+            {
+                relativePaths = new string[1];
+            }
+            relativePaths[0] = node.DefineLocation!.FilePath;
+
             string? description = string.IsNullOrWhiteSpace(node.UserDescription) ? node.LLMDescription : node.UserDescription;
-            return new ProjectReport(node.Id, sb.ToString(), node.Spelling, node.CxType, className, node.NameSpace, description);
+            return new ProjectReport(node.Id, sb.ToString(), node.Spelling, node.CxType, className, node.NameSpace, description, relativePaths);
         }).ToArray();
 
         return report;

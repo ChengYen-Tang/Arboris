@@ -4,6 +4,7 @@ using Arboris.Domain;
 using Arboris.Models;
 using Arboris.Models.Graph.CXX;
 using Arboris.Repositories;
+using Arboris.Service.Models;
 using FluentResults;
 using Microsoft.AspNetCore.Mvc;
 using System.IO.Compression;
@@ -28,34 +29,39 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> Create(Guid id, IFormFile projectFile, string[]? excludePaths, IFormFile? reportFile)
+    public async Task<IActionResult> Create([FromForm] CreateProjectRequest request)
     {
-        if (projectFile == null || projectFile.Length == 0)
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        if (request.ProjectFile == null || request.ProjectFile.Length == 0)
         {
             return BadRequest("projectFile: No file uploaded.");
         }
 
-        if (!(projectFile.ContentType.Contains("zip") || projectFile.ContentType.Contains("ZIP")))
+        if (!(request.ProjectFile.ContentType.Contains("zip") || request.ProjectFile.ContentType.Contains("ZIP")))
         {
             return BadRequest("projectFile: Only .zip files are allowed.");
         }
 
         var allowedExtensions = new[] { ".zip" };
-        var extension = Path.GetExtension(projectFile.FileName).ToLowerInvariant();
+        var extension = Path.GetExtension(request.ProjectFile.FileName).ToLowerInvariant();
 
         if (!allowedExtensions.Contains(extension))
         {
             return BadRequest("projectFile: Only .zip files are allowed.");
         }
 
-        if (reportFile is not null && projectFile.Length > 0)
+        if (request.ReportFile is not null && request.ProjectFile.Length > 0)
         {
-            if (!(reportFile.ContentType.Contains("zip") || reportFile.ContentType.Contains("ZIP")))
+            if (!(request.ReportFile.ContentType.Contains("zip") || request.ReportFile.ContentType.Contains("ZIP")))
             {
                 return BadRequest("reportFile: Only .zip files are allowed.");
             }
 
-            extension = Path.GetExtension(reportFile.FileName).ToLowerInvariant();
+            extension = Path.GetExtension(request.ReportFile.FileName).ToLowerInvariant();
             if (!allowedExtensions.Contains(extension))
             {
                 return BadRequest("reportFile: Only .zip files are allowed.");
@@ -64,23 +70,23 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
 
         try
         {
-            Result result = await projectRepository.CreateProjectAsync(id);
+            Result result = await projectRepository.CreateProjectAsync(request.Id);
             if (result.IsFailed)
             {
                 Guid errorId = Guid.NewGuid();
                 string errorMessages = string.Join(',', result.Errors.Select(item => item.Message));
-                logger.LogWarning("Error Id: {ErrId}, projectRepository.CreateProjectAsync({Id}), Error message: {ErrorMessage}", errorId, id, errorMessages);
+                logger.LogWarning("Error Id: {ErrId}, projectRepository.CreateProjectAsync({Id}), Error message: {ErrorMessage}", errorId, request.Id, errorMessages);
                 return StatusCode(StatusCodes.Status400BadRequest, $"Error Id: {errorId}, Error message: {errorMessages}");
             }
         }
         catch (Exception ex)
         {
             Guid errorId = Guid.NewGuid();
-            logger.LogError(ex, "Error Id: {ErrId}, projectRepository.CreateProjectAsync({Id}) Failed, Error message: {Message}", errorId, id, ex.Message);
+            logger.LogError(ex, "Error Id: {ErrId}, projectRepository.CreateProjectAsync({Id}) Failed, Error message: {Message}", errorId, request.Id, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
 
-        string projectCacheDirectory = Path.Combine(cacheDirectory, id.ToString());
+        string projectCacheDirectory = Path.Combine(cacheDirectory, request.Id.ToString());
         if (Directory.Exists(projectCacheDirectory))
             Directory.Delete(projectCacheDirectory, true);
         Directory.CreateDirectory(projectCacheDirectory);
@@ -90,11 +96,11 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
         Directory.CreateDirectory(repotDirectory);
         try
         {
-            ZipFile.ExtractToDirectory(projectFile.OpenReadStream(), projectDirectory);
+            ZipFile.ExtractToDirectory(request.ProjectFile.OpenReadStream(), projectDirectory);
         }
         catch (Exception ex)
         {
-            _ = await projectRepository.DeleteProjectAsync(id);
+            _ = await projectRepository.DeleteProjectAsync(request.Id);
             Directory.Delete(projectDirectory, true);
             Guid errorId = Guid.NewGuid();
             if (ex is UnauthorizedAccessException or NotSupportedException or InvalidDataException)
@@ -107,26 +113,26 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
             return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
 
-        using Clang clang = clangFactory.Create(id, projectDirectory, excludePaths);
+        using Clang clang = clangFactory.Create(request.Id, projectDirectory, request.ExcludePaths);
         try
         {
             await clang.Scan();
         }
         catch (Exception ex)
         {
-            _ = await projectRepository.DeleteProjectAsync(id);
+            _ = await projectRepository.DeleteProjectAsync(request.Id);
             Directory.Delete(projectDirectory, true);
             Guid errorId = Guid.NewGuid();
             logger.LogError(ex, "Error Id: {ErrId}, clang.Scan Failed, Error message: {Message}", errorId, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
 
-        if (reportFile is not null && projectFile.Length > 0)
+        if (request.ReportFile is not null && request.ProjectFile.Length > 0)
         {
             try
             {
-                ZipFile.ExtractToDirectory(reportFile.OpenReadStream(), repotDirectory);
-                await project.SyncFromReport(id, repotDirectory);
+                ZipFile.ExtractToDirectory(request.ReportFile.OpenReadStream(), repotDirectory);
+                await project.SyncFromReport(request.Id, repotDirectory);
             }
             catch (Exception ex)
             {
@@ -144,10 +150,10 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
         Directory.Delete(projectCacheDirectory, true);
         try
         {
-            Result<OverallGraph> overallGraph = await cxxAggregate.GetOverallGraphAsync(id);
+            Result<OverallGraph> overallGraph = await cxxAggregate.GetOverallGraphAsync(request.Id);
             if (overallGraph.IsFailed)
             {
-                _ = await projectRepository.DeleteProjectAsync(id);
+                _ = await projectRepository.DeleteProjectAsync(request.Id);
                 Guid errorId = Guid.NewGuid();
                 logger.LogError("Error Id: {ErrId}, cxxAggregate.GetOverallGraphAsync Failed, Error message: {Message}", errorId, string.Join(',', overallGraph.Errors.Select(item => item.Message)));
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
@@ -157,7 +163,7 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
         }
         catch (Exception ex)
         {
-            _ = await projectRepository.DeleteProjectAsync(id);
+            _ = await projectRepository.DeleteProjectAsync(request.Id);
             Guid errorId = Guid.NewGuid();
             logger.LogError(ex, "Error Id: {ErrId}, cxxAggregate.GetOverallGraphAsync Failed, Error message: {Message}", errorId, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");

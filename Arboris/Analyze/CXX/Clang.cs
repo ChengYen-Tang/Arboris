@@ -66,14 +66,14 @@ public class Clang : IDisposable
 
     private async Task RemoveTypeDeclarations()
     {
-        Result<NodeInfo[]> nodeInfosResult = await cxxAggregate.GetDistinctClassAndStructNodeInfosAsync();
+        Result<NodeInfo[]> nodeInfosResult = await cxxAggregate.GetDistinctClassAndStructNodeInfosAsync(projectId);
         foreach (var nodeInfo in nodeInfosResult.Value)
         {
-            Result result = await cxxAggregate.MoveTypeDeclarationLinkAsync(nodeInfo);
+            Result result = await cxxAggregate.MoveTypeDeclarationLinkAsync(projectId, nodeInfo);
             Trace.Assert(result.IsSuccess, "MoveTypeDeclarationDepandencyAsync failed");
         }
 
-        await cxxAggregate.RemoveTypeDeclarations();
+        await cxxAggregate.RemoveTypeDeclarations(projectId);
     }
 
     private async Task ScanNode(IReadOnlyList<string> headerFiles)
@@ -139,7 +139,7 @@ public class Clang : IDisposable
                 else
                 {
                     logger.LogDebug("DefineLocation-> StartLine: {StartLine}, EndLine: {EndLine}, FilePath: {FilePath}", defineStartLine, defineEndLine, defineFileName);
-                    Result<Node> node = await cxxAggregate.GetNodeFromDefineLocation(defineLocation);
+                    Result<Node> node = await cxxAggregate.GetNodeFromDefineLocation(projectId, defineLocation);
                     Trace.Assert(node.IsSuccess, "Node not found for DefineLocation");
                     node.Value.ImplementationLocation = location;
                     Result updateResult = await cxxAggregate.UpdateNodeAsync(node.Value);
@@ -253,7 +253,7 @@ public class Clang : IDisposable
             ((Decl)decl.LexicalDeclContext).Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint _, out uint _);
             using CXString fileName = file.Name;
             Location classLocation = new(GetRelativePath(fileName.ToString()), startLine, endLine);
-            Result result = await cxxAggregate.LinkMemberAsync(classLocation, nodeId);
+            Result result = await cxxAggregate.LinkMemberAsync(projectId, classLocation, nodeId);
             Trace.Assert(result.IsSuccess, "ClassLocation not found");
         }
     }
@@ -276,7 +276,7 @@ public class Clang : IDisposable
             if (!VerifyLocation(location) || !VerifyFromNodeOutOfSelfNode(compoundStmtLocation, location))
                 return;
             logger.LogDebug("    CXCursor_TypeRef -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, fileName);
-            Result result = await cxxAggregate.LinkDependencyAsync(compoundStmtLocation, location);
+            Result result = await cxxAggregate.LinkDependencyAsync(projectId, compoundStmtLocation, location);
             PrintErrorMessage(result);
         }
         else if (cursor.CursorKind == CXCursorKind.CXCursor_CallExpr)
@@ -298,13 +298,13 @@ public class Clang : IDisposable
             if (cursor.Spelling == "operator=" && cursor is CXXOperatorCallExpr)
             {
                 logger.LogDebug("    CXCursor_CallExpr -> operator= -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, location.FilePath);
-                Result result = await cxxAggregate.LinkDependencyCallExprOperatorEqualAsync(compoundStmtLocation, location);
+                Result result = await cxxAggregate.LinkDependencyCallExprOperatorEqualAsync(projectId, compoundStmtLocation, location);
                 PrintErrorMessage(result);
             }
             else
             {
                 logger.LogDebug("    CXCursor_CallExpr -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, location.FilePath);
-                Result result = await cxxAggregate.LinkDependencyAsync(compoundStmtLocation, location);
+                Result result = await cxxAggregate.LinkDependencyAsync(projectId, compoundStmtLocation, location);
                 PrintErrorMessage(result);
             }
         }
@@ -325,7 +325,7 @@ public class Clang : IDisposable
                 return;
 
             logger.LogDebug("    CXCursor_MemberRefExpr -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, location.FilePath);
-            Result result = await cxxAggregate.LinkDependencyAsync(compoundStmtLocation, location);
+            Result result = await cxxAggregate.LinkDependencyAsync(projectId, compoundStmtLocation, location);
             PrintErrorMessage(result);
         }
         else if (cursor.CursorKind == CXCursorKind.CXCursor_OverloadedDeclRef)
@@ -346,7 +346,7 @@ public class Clang : IDisposable
                     return;
 
                 logger.LogDebug("    CXCursor_OverloadedDeclRef -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, location.FilePath);
-                Result result = await cxxAggregate.LinkDependencyAsync(compoundStmtLocation, location);
+                Result result = await cxxAggregate.LinkDependencyAsync(projectId, compoundStmtLocation, location);
                 PrintErrorMessage(result);
             }
         }
@@ -367,7 +367,7 @@ public class Clang : IDisposable
             using CXString fileName = file.Name;
             Location location = new(GetRelativePath(fileName.ToString()), startLine, endLine);
             if (VerifyLocation(location))
-                await cxxAggregate.LinkTypeAsync(defineLocation, location, isImplementation);
+                await cxxAggregate.LinkTypeAsync(projectId, defineLocation, location, isImplementation);
         }
 
         foreach (var child in cursor.CursorChildren)
@@ -375,7 +375,13 @@ public class Clang : IDisposable
     }
 
     private string GetRelativePath(string path)
-        => Uri.UnescapeDataString(projectUri.MakeRelativeUri(new Uri(path)).ToString()).Replace('\\', '/');
+    {
+        string relativePath = Uri.UnescapeDataString(projectUri.MakeRelativeUri(new Uri(path)).ToString()).Replace('\\', '/');
+        string lastSegment = projectUri.Segments[projectUri!.Segments.Length - 1];
+        if (relativePath.StartsWith(lastSegment))
+            return relativePath.Substring(lastSegment.Length + 1);
+        return relativePath;
+    }
 
     private static bool VerifyLocation(Location location)
         => !(string.IsNullOrEmpty(location.FilePath) || location.StartLine == 0 || location.EndLine == 0);
@@ -387,7 +393,7 @@ public class Clang : IDisposable
     {
         if (result.IsFailed)
             foreach (var item in result.Errors)
-                logger.LogError("    {ErrorMessage}", item.Message);
+                logger.LogWarning("    {ErrorMessage}", item.Message);
     }
 
     protected virtual void Dispose(bool disposing)

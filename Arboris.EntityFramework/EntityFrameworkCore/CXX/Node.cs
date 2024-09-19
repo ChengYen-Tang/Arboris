@@ -1,7 +1,9 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
 namespace Arboris.EntityFramework.EntityFrameworkCore.CXX;
 
+[Index(nameof(Id), nameof(ProjectId))]
 public class Node
 {
     [Key]
