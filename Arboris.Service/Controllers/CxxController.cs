@@ -14,7 +14,7 @@ public class CxxController(ILogger<CxxController> logger, CxxAggregate cxxAggreg
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> UpdateDescription(Guid id, string description)
+    public async Task<IActionResult> UpdateDescription(Guid id, [FromForm] string description)
     {
         try
         {

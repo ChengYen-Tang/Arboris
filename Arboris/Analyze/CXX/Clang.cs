@@ -117,7 +117,6 @@ public class Clang : IDisposable
         Location fullLocation = new(fullFileName, startLine, endLine);
         Location location = new(GetRelativePath(fullFileName), startLine, endLine);
         logger.LogDebug("Location-> StartLine: {StartLine}, EndLine: {EndLine}, StartColumn: {StartColumn}, EndColumn: {EndColumn}, FileName: {FileName}", startLine, endLine, startColumn, endColumn, location.FilePath);
-
         using CXString cXType = cursor.Handle.Type.Spelling;
 
         if (validCursorKind.Contains(cursor.CursorKind))

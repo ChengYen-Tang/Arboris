@@ -29,7 +29,7 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> Create([FromForm] CreateProjectRequest request)
+    public async Task<IActionResult> Create(Guid id, [FromForm] CreateProjectRequest request)
     {
         if (!ModelState.IsValid)
         {
@@ -70,23 +70,23 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
 
         try
         {
-            Result result = await projectRepository.CreateProjectAsync(request.Id);
+            Result result = await projectRepository.CreateProjectAsync(id);
             if (result.IsFailed)
             {
                 Guid errorId = Guid.NewGuid();
                 string errorMessages = string.Join(',', result.Errors.Select(item => item.Message));
-                logger.LogWarning("Error Id: {ErrId}, projectRepository.CreateProjectAsync({Id}), Error message: {ErrorMessage}", errorId, request.Id, errorMessages);
+                logger.LogWarning("Error Id: {ErrId}, projectRepository.CreateProjectAsync({Id}), Error message: {ErrorMessage}", errorId, id, errorMessages);
                 return StatusCode(StatusCodes.Status400BadRequest, $"Error Id: {errorId}, Error message: {errorMessages}");
             }
         }
         catch (Exception ex)
         {
             Guid errorId = Guid.NewGuid();
-            logger.LogError(ex, "Error Id: {ErrId}, projectRepository.CreateProjectAsync({Id}) Failed, Error message: {Message}", errorId, request.Id, ex.Message);
+            logger.LogError(ex, "Error Id: {ErrId}, projectRepository.CreateProjectAsync({Id}) Failed, Error message: {Message}", errorId, id, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
 
-        string projectCacheDirectory = Path.Combine(cacheDirectory, request.Id.ToString());
+        string projectCacheDirectory = Path.Combine(cacheDirectory, id.ToString());
         if (Directory.Exists(projectCacheDirectory))
             Directory.Delete(projectCacheDirectory, true);
         Directory.CreateDirectory(projectCacheDirectory);
@@ -100,7 +100,7 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
         }
         catch (Exception ex)
         {
-            _ = await projectRepository.DeleteProjectAsync(request.Id);
+            _ = await projectRepository.DeleteProjectAsync(id);
             Directory.Delete(projectDirectory, true);
             Guid errorId = Guid.NewGuid();
             if (ex is UnauthorizedAccessException or NotSupportedException or InvalidDataException)
@@ -113,26 +113,30 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
             return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
 
-        using Clang clang = clangFactory.Create(request.Id, projectDirectory, request.ExcludePaths);
+        Clang clang = clangFactory.Create(id, projectDirectory, request.ExcludePaths);
         try
         {
             await clang.Scan();
         }
         catch (Exception ex)
         {
-            _ = await projectRepository.DeleteProjectAsync(request.Id);
+            _ = await projectRepository.DeleteProjectAsync(id);
             Directory.Delete(projectDirectory, true);
             Guid errorId = Guid.NewGuid();
             logger.LogError(ex, "Error Id: {ErrId}, clang.Scan Failed, Error message: {Message}", errorId, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
-
+        finally
+        {
+            clang.Dispose();
+            GC.Collect();
+        }
         if (request.ReportFile is not null && request.ProjectFile.Length > 0)
         {
             try
             {
                 ZipFile.ExtractToDirectory(request.ReportFile.OpenReadStream(), repotDirectory);
-                await project.SyncFromReport(request.Id, repotDirectory);
+                await project.SyncFromReport(id, repotDirectory);
             }
             catch (Exception ex)
             {
@@ -150,10 +154,10 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
         Directory.Delete(projectCacheDirectory, true);
         try
         {
-            Result<OverallGraph> overallGraph = await cxxAggregate.GetOverallGraphAsync(request.Id);
+            Result<OverallGraph> overallGraph = await cxxAggregate.GetOverallGraphAsync(id);
             if (overallGraph.IsFailed)
             {
-                _ = await projectRepository.DeleteProjectAsync(request.Id);
+                _ = await projectRepository.DeleteProjectAsync(id);
                 Guid errorId = Guid.NewGuid();
                 logger.LogError("Error Id: {ErrId}, cxxAggregate.GetOverallGraphAsync Failed, Error message: {Message}", errorId, string.Join(',', overallGraph.Errors.Select(item => item.Message)));
                 return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
@@ -163,7 +167,7 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
         }
         catch (Exception ex)
         {
-            _ = await projectRepository.DeleteProjectAsync(request.Id);
+            _ = await projectRepository.DeleteProjectAsync(id);
             Guid errorId = Guid.NewGuid();
             logger.LogError(ex, "Error Id: {ErrId}, cxxAggregate.GetOverallGraphAsync Failed, Error message: {Message}", errorId, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");

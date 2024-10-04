@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 namespace Arboris.EntityFramework.EntityFrameworkCore.CXX;
 
 [Index(nameof(Id), nameof(ProjectId))]
+[Index(nameof(Id), nameof(Spelling))]
 public class Node
 {
     [Key]
