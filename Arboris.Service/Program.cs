@@ -13,6 +13,14 @@ using System.Text.Encodings.Web;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddJsonFile("Config/appsettings.json", optional: false, reloadOnChange: true);
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = long.MaxValue;
+});
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = long.MaxValue;
+});
 
 // Add services to the container.
 builder.Services.AddPooledDbContextFactory<ArborisDbContext>(options =>
@@ -51,7 +59,8 @@ var app = builder.Build();
 
 app.Use(async (context, next) =>
 {
-    context.Features.Get<IHttpMaxRequestBodySizeFeature>()!.MaxRequestBodySize = null;
+    context.Request.EnableBuffering();
+    context.Features.Get<IHttpMaxRequestBodySizeFeature>()!.MaxRequestBodySize = long.MaxValue;
     await next.Invoke();
 });
 

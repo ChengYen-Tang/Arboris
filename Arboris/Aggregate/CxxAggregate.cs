@@ -163,7 +163,7 @@ public class CxxAggregate(ICxxRepository nodeRepository)
             return nodeResult.ToResult();
 
         string filePath = nodeResult.Value.ImplementationLocation is not null ? nodeResult.Value.ImplementationLocation.FilePath : nodeResult.Value.DefineLocation!.FilePath;
-        return new ForUtServiceFuncInfo(filePath, nodeResult.Value.Spelling, nodeResult.Value.CxType, className, nodeResult.Value.CursorKindSpelling);
+        return new ForUtServiceFuncInfo(filePath, nodeResult.Value.Spelling, nodeResult.Value.CxType, nodeResult.Value.NameSpace, className, nodeResult.Value.CursorKindSpelling);
     }
 
     public Task<Result> UpdateUserDescription(Guid projectId, string? nameSpace, string? className, string? spelling, string? cxType, string? description)
