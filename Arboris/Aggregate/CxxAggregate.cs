@@ -15,41 +15,41 @@ public class CxxAggregate(ICxxRepository nodeRepository)
         return (await nodeRepository.AddNodeAsync(addNode), false);
     }
 
-    public Task<Result<Node>> GetNodeFromDefineLocation(Guid projectId, Location location)
-        => nodeRepository.GetNodeFromDefineLocation(projectId, location);
+    public Task<Result<Node>> GetNodeFromDefineLocation(Guid projectId, string vcProjectName, Location location)
+        => nodeRepository.GetNodeFromDefineLocation(projectId, vcProjectName, location);
 
     public Task<Result> UpdateNodeAsync(Node node)
         => nodeRepository.UpdateNodeAsync(node);
 
-    public Task<Result> LinkMemberAsync(Guid projectId, Location classLocation, Guid memberId)
-        => nodeRepository.LinkMemberAsync(projectId, classLocation, memberId);
+    public Task<Result> LinkMemberAsync(Guid projectId, string vcProjectName, Location classLocation, Guid memberId)
+        => nodeRepository.LinkMemberAsync(projectId, vcProjectName, classLocation, memberId);
 
-    public Task<Result> LinkDependencyAsync(Guid projectId, Location nodeLocation, Location fromLocation)
-        => nodeRepository.LinkDependencyAsync(projectId, nodeLocation, fromLocation);
+    public Task<Result> LinkDependencyAsync(Guid projectId, string vcProjectName, Location nodeLocation, Location fromLocation)
+        => nodeRepository.LinkDependencyAsync(projectId, vcProjectName, nodeLocation, fromLocation);
 
-    public Task<Result> LinkDependencyCallExprOperatorEqualAsync(Guid projectId, Location nodeLocation, Location fromLocation)
-        => nodeRepository.LinkDependencyCallExprOperatorEqualAsync(projectId, nodeLocation, fromLocation);
+    public Task<Result> LinkDependencyCallExprOperatorEqualAsync(Guid projectId, string vcProjectName, Location nodeLocation, Location fromLocation)
+        => nodeRepository.LinkDependencyCallExprOperatorEqualAsync(projectId, vcProjectName, nodeLocation, fromLocation);
 
-    public async Task<Result> LinkTypeAsync(Guid projectId, Location nodeLocation, Location typeLocation, bool isImplementation)
+    public async Task<Result> LinkTypeAsync(Guid projectId, string vcProjectName, Location nodeLocation, Location typeLocation, bool isImplementation)
     {
-        Result<Node> nodeResult = await nodeRepository.GetNodeFromDefineLocation(projectId, nodeLocation);
+        Result<Node> nodeResult = await nodeRepository.GetNodeFromDefineLocation(projectId, vcProjectName, nodeLocation);
         if (nodeResult.IsFailed)
             return nodeResult.ToResult();
 
         if (nodeResult.Value.ImplementationLocation is not null && !isImplementation)
             return Result.Ok();
 
-        return await nodeRepository.LinkTypeAsync(projectId, nodeLocation, typeLocation);
+        return await nodeRepository.LinkTypeAsync(projectId, vcProjectName, nodeLocation, typeLocation);
     }
 
-    public Task<Result<NodeInfo[]>> GetDistinctClassAndStructNodeInfosAsync(Guid projectId)
-        => nodeRepository.GetDistinctClassAndStructNodeInfosAsync(projectId);
+    public Task<Result<NodeInfo[]>> GetDistinctClassAndStructNodeInfosAsync(Guid projectId, string vcProjectName)
+        => nodeRepository.GetDistinctClassAndStructNodeInfosAsync(projectId, vcProjectName);
 
     public Task<Result> MoveTypeDeclarationLinkAsync(Guid projectId, NodeInfo nodeInfo)
         => nodeRepository.MoveTypeDeclarationLinkAsync(projectId, nodeInfo);
 
-    public Task<Result> RemoveTypeDeclarations(Guid projectId)
-        => nodeRepository.RemoveTypeDeclarations(projectId);
+    public Task<Result> RemoveTypeDeclarations(Guid projectId, string vcProjectName)
+        => nodeRepository.RemoveTypeDeclarations(projectId, vcProjectName);
 
     public async Task<Result<OverallGraph>> GetOverallGraphAsync(Guid projectId)
     {
@@ -166,6 +166,6 @@ public class CxxAggregate(ICxxRepository nodeRepository)
         return new ForUtServiceFuncInfo(filePath, nodeResult.Value.Spelling, nodeResult.Value.CxType, nodeResult.Value.NameSpace, className, nodeResult.Value.CursorKindSpelling);
     }
 
-    public Task<Result> UpdateUserDescription(Guid projectId, string? nameSpace, string? className, string? spelling, string? cxType, string? description)
-        => nodeRepository.UpdateUserDescription(projectId, nameSpace, className, spelling, cxType, description);
+    public Task<Result> UpdateUserDescription(Guid projectId, string vcProjectName, string? nameSpace, string? className, string? spelling, string? cxType, string? description)
+        => nodeRepository.UpdateUserDescription(projectId, vcProjectName, nameSpace, className, spelling, cxType, description);
 }

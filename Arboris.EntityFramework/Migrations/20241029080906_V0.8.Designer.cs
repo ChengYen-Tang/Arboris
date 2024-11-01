@@ -4,6 +4,7 @@ using Arboris.EntityFramework.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,13 +12,15 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Arboris.EntityFramework.Migrations
 {
     [DbContext(typeof(ArborisDbContext))]
-    partial class ArborisDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241029080906_V0.8")]
+    partial class V08
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.10")
+                .HasAnnotation("ProductVersion", "8.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -161,11 +164,11 @@ namespace Arboris.EntityFramework.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ProjectId");
+
                     b.HasIndex("Id", "ProjectId");
 
                     b.HasIndex("Id", "Spelling");
-
-                    b.HasIndex("ProjectId", "Spelling", "Id");
 
                     b.ToTable("Cxx_Nodes");
                 });

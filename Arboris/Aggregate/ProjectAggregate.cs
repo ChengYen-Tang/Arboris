@@ -39,7 +39,7 @@ public class ProjectAggregate(ICxxRepository cxxRepository, IProjectRepository p
             relativePaths[0] = node.DefineLocation!.FilePath;
 
             string? description = string.IsNullOrWhiteSpace(node.UserDescription) ? node.LLMDescription : node.UserDescription;
-            return new ProjectReport(node.Id, sb.ToString(), node.Spelling, node.CxType, className, node.NameSpace, description, relativePaths);
+            return new ProjectReport(node.Id, node.VcProjectName, sb.ToString(), node.Spelling, node.CxType, className, node.NameSpace, description, relativePaths);
         }).ToArray();
 
         return report;

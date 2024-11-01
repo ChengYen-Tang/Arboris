@@ -8,6 +8,7 @@ using Arboris.Service.Models;
 using FluentResults;
 using Microsoft.AspNetCore.Mvc;
 using System.IO.Compression;
+using System.Text.Json;
 
 namespace Arboris.Service.Controllers;
 
@@ -54,7 +55,7 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
             return BadRequest("projectFile: Only .zip files are allowed.");
         }
 
-        if (request.ReportFile is not null && request.ProjectFile.Length > 0)
+        if (request.ReportFile is not null && request.ReportFile.Length > 0)
         {
             if (!(request.ReportFile.ContentType.Contains("zip") || request.ReportFile.ContentType.Contains("ZIP")))
             {
@@ -101,7 +102,7 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
         catch (Exception ex)
         {
             _ = await projectRepository.DeleteProjectAsync(id);
-            Directory.Delete(projectDirectory, true);
+            Directory.Delete(projectCacheDirectory, true);
             Guid errorId = Guid.NewGuid();
             if (ex is UnauthorizedAccessException or NotSupportedException or InvalidDataException)
             {
@@ -113,10 +114,38 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
             return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
 
-        Clang clang = clangFactory.Create(id, projectDirectory, request.ExcludePaths);
+        string projectConfigPath = Path.Combine(projectDirectory, "Config.json");
+        if (!System.IO.File.Exists(projectConfigPath))
+        {
+            _ = await projectRepository.DeleteProjectAsync(id);
+            Directory.Delete(projectCacheDirectory, true);
+            Guid errorId = Guid.NewGuid();
+            logger.LogWarning("Error Id: {ErrId}, Config file not found: {ProjectConfigPath}", errorId, projectConfigPath);
+            return StatusCode(StatusCodes.Status400BadRequest, $"Error Id: {errorId}, Config file not found: {projectConfigPath}");
+        }
+
+        Clang clang = null!;
         try
         {
-            await clang.Scan();
+            string projectConfigJson = await System.IO.File.ReadAllTextAsync(projectConfigPath);
+            ProjectConfig[]? projectConfigs = JsonSerializer.Deserialize<ProjectConfig[]>(projectConfigJson);
+
+            if (projectConfigs is null)
+            {
+                _ = await projectRepository.DeleteProjectAsync(id);
+                Directory.Delete(projectCacheDirectory, true);
+                Guid errorId = Guid.NewGuid();
+                logger.LogWarning("Error Id: {ErrId}, Config file is empty: {ProjectConfigPath}", errorId, projectConfigPath);
+                return StatusCode(StatusCodes.Status400BadRequest, $"Error Id: {errorId}, Config file is empty: {projectConfigPath}");
+            }
+
+            foreach (ProjectConfig projectConfig in projectConfigs)
+            {
+                clang = clangFactory.Create(id, projectDirectory, projectConfig);
+                await clang.Scan();
+                clang.Dispose();
+                clang = null!;
+            }
         }
         catch (Exception ex)
         {
@@ -128,7 +157,7 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
         }
         finally
         {
-            clang.Dispose();
+            clang?.Dispose();
             GC.Collect();
         }
         if (request.ReportFile is not null && request.ProjectFile.Length > 0)

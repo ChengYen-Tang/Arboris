@@ -2,6 +2,7 @@
 
 public class CodeInfo
 {
+    public string VcProjectName { get; set; } = null!;
     public string? NameSpace { get; set; }
     public string? Spelling { get; set; }
     public string? CxType { get; set; }

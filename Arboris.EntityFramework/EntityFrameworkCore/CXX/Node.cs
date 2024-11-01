@@ -5,10 +5,12 @@ namespace Arboris.EntityFramework.EntityFrameworkCore.CXX;
 
 [Index(nameof(Id), nameof(ProjectId))]
 [Index(nameof(Id), nameof(Spelling))]
+[Index(nameof(ProjectId), nameof(Spelling), nameof(Id))]
 public class Node
 {
     [Key]
     public Guid Id { get; set; }
+    public string VcProjectName { get; set; } = null!;
     public string? CursorKindSpelling { get; set; }
     public string? Spelling { get; set; }
     public string? CxType { get; set; }
