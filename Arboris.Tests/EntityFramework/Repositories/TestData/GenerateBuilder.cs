@@ -1,12 +1,5 @@
-﻿using Arboris.EntityFramework.EntityFrameworkCore;
+﻿namespace Arboris.Tests.EntityFramework.Repositories.TestData;
 
-namespace Arboris.Tests.EntityFramework.Repositories.TestData;
-
-public partial class GenerateBuilder(ArborisDbContext db)
+public partial class GenerateBuilder(ArborisDbContext db, CxxRepository repository)
 {
-    public async Task BuildAsync()
-    {
-        await db.SaveChangesAsync();
-        await db.DisposeAsync();
-    }
 }

@@ -1,6 +1,4 @@
-﻿using Arboris.EntityFramework.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
+﻿using Microsoft.Data.Sqlite;
 using Moq;
 
 namespace Arboris.Tests.EntityFramework.EntityFrameworkCore;
@@ -8,8 +6,11 @@ namespace Arboris.Tests.EntityFramework.EntityFrameworkCore;
 
 public static class DBContextInit
 {
+    private static SqliteConnection connection = null!;
+
     public static async Task<ArborisDbContext> GetArborisDbContextAsync()
     {
+        await ConnectionAsync();
         ArborisDbContext dbContext = GenerateDbContextAsync();
         await DbInit(dbContext);
 
@@ -18,11 +19,13 @@ public static class DBContextInit
 
     public static async Task<IDbContextFactory<ArborisDbContext>> GetArborisDbContextFactoryAsync()
     {
+        await ConnectionAsync();
         var mockDbFactory = new Mock<IDbContextFactory<ArborisDbContext>>();
         mockDbFactory.Setup(factory => factory.CreateDbContext()).Returns(() => GenerateDbContextAsync());
         mockDbFactory.Setup(factory => factory.CreateDbContextAsync(default)).Returns(() => Task.FromResult(GenerateDbContextAsync()));
         IDbContextFactory<ArborisDbContext> dbFactor = mockDbFactory.Object;
-        await DbInit(await dbFactor.CreateDbContextAsync());
+        using ArborisDbContext db = await dbFactor.CreateDbContextAsync();
+        await DbInit(db);
 
         return dbFactor;
     }
@@ -30,15 +33,25 @@ public static class DBContextInit
     private static ArborisDbContext GenerateDbContextAsync()
     {
         DbContextOptions<ArborisDbContext> contextOptions = new DbContextOptionsBuilder<ArborisDbContext>()
-            .UseInMemoryDatabase("ArborisTest")
-            .ConfigureWarnings(b => b.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+            .UseSqlite(connection)
             .Options;
 
-        return new(contextOptions);
+        return new ArborisDbContext(contextOptions);
+    }
+
+    private static async Task ConnectionAsync()
+    {
+        if (connection is not null)
+        {
+            await connection.CloseAsync();
+            await connection.DisposeAsync();
+        }
+        connection = new SqliteConnection("Data Source=:memory:");
     }
 
     private static async Task DbInit(ArborisDbContext dbContext)
     {
+        await dbContext.Database.OpenConnectionAsync();
         await dbContext.Database.EnsureDeletedAsync();
         await dbContext.Database.EnsureCreatedAsync();
     }

@@ -1,27 +1,26 @@
-﻿using Arboris.EntityFramework.EntityFrameworkCore;
-using Arboris.EntityFramework.EntityFrameworkCore.CXX;
+﻿using Arboris.EntityFramework.EntityFrameworkCore.CXX;
 using Arboris.Tests.EntityFramework.CXX.TestData;
-using Arboris.Tests.EntityFramework.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
 
 namespace Arboris.Tests.EntityFramework.EntityFrameworkCore.CXX;
 
 [TestClass]
 public class TypeTests
 {
-    private ArborisDbContext dbContext = null!;
+    private IDbContextFactory<ArborisDbContext> dbFactory = null!;
     private GenerateBuilder generateBuilder = null!;
+    private ArborisDbContext db = null!;
 
     [TestInitialize]
     public async Task Initialize()
     {
-        dbContext = await DBContextInit.GetArborisDbContextAsync();
-        generateBuilder = new(dbContext);
+        dbFactory = await DBContextInit.GetArborisDbContextFactoryAsync();
+        db = await dbFactory.CreateDbContextAsync();
+        generateBuilder = new(db);
     }
 
     [TestCleanup]
     public void Cleanup()
-        => dbContext.Dispose();
+        => db.Dispose();
 
     [TestMethod]
     public async Task TestCreateTypeAsync()
@@ -33,10 +32,11 @@ public class TypeTests
             .AddType2()
             .BuildAsync();
 
+        using ArborisDbContext dbContext = await dbFactory.CreateDbContextAsync();
         Node node = await dbContext.Cxx_Nodes
             .Include(item => item.Types)!
             .ThenInclude(item => item.Type)
-            .FirstAsync();
+            .FirstAsync(item => item.Id == generateBuilder.Nodes[0].Id);
 
         Assert.AreEqual(2, node.Types!.Count);
         List<Node> types = node.Types.Select(item => item.Type).ToList();
@@ -53,18 +53,23 @@ public class TypeTests
             .AddType2()
             .BuildAsync();
 
+        ArborisDbContext dbContext = await dbFactory.CreateDbContextAsync();
         Node node = await dbContext.Cxx_Nodes
             .Include(item => item.Types)!
             .ThenInclude(item => item.Type)
-            .FirstAsync();
-
+            .FirstAsync(item => item.Id == generateBuilder.Nodes[0].Id);
         Assert.AreEqual(2, node.Types!.Count);
+        await dbContext.DisposeAsync();
 
+        dbContext = await dbFactory.CreateDbContextAsync();
         dbContext.Cxx_Nodes.Remove(generateBuilder.Nodes[0]);
         await dbContext.SaveChangesAsync();
+        await dbContext.DisposeAsync();
 
+        dbContext = await dbFactory.CreateDbContextAsync();
         Assert.AreEqual(2, await dbContext.Cxx_Nodes.CountAsync());
         Assert.AreEqual(0, await dbContext.Cxx_NodeTypes.CountAsync());
+        await dbContext.DisposeAsync();
     }
 
     [TestMethod]
@@ -77,18 +82,23 @@ public class TypeTests
             .AddType2()
             .BuildAsync();
 
+        ArborisDbContext dbContext = await dbFactory.CreateDbContextAsync();
         Node node = await dbContext.Cxx_Nodes
             .Include(item => item.Types)!
             .ThenInclude(item => item.Type)
-            .FirstAsync();
-
+            .FirstAsync(item => item.Id == generateBuilder.Nodes[0].Id);
         Assert.AreEqual(2, node.Types!.Count);
+        await dbContext.DisposeAsync();
 
+        dbContext = await dbFactory.CreateDbContextAsync();
         dbContext.Cxx_Nodes.Remove(generateBuilder.Nodes[1]);
         await dbContext.SaveChangesAsync();
+        await dbContext.DisposeAsync();
 
+        dbContext = await dbFactory.CreateDbContextAsync();
         Assert.AreEqual(2, await dbContext.Cxx_Nodes.CountAsync());
         Assert.AreEqual(1, await dbContext.Cxx_NodeTypes.CountAsync());
+        await dbContext.DisposeAsync();
     }
 
     [TestMethod]
@@ -101,10 +111,11 @@ public class TypeTests
             .AddType2()
             .BuildAsync();
 
+        using ArborisDbContext dbContext = await dbFactory.CreateDbContextAsync();
         Node node = await dbContext.Cxx_Nodes
             .Include(item => item.Types)!
             .ThenInclude(item => item.Type)
-            .FirstAsync();
+            .FirstAsync(item => item.Id == generateBuilder.Nodes[0].Id);
 
         Assert.AreEqual(2, node.Types!.Count);
 

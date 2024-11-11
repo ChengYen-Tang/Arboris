@@ -17,3 +17,4 @@ public class Node
 public record NodeInfo(Guid Id, string VcProjectName, string? CursorKindSpelling, string? Spelling, string? CxType, string? NameSpace, string? UserDescription, string? LLMDescription);
 public record NodeInfoWithLocation(Guid Id, string VcProjectName, string? CursorKindSpelling, string? Spelling, string? CxType, string? NameSpace, string? UserDescription, string? LLMDescription, Location? DefineLocation, Location? ImplementationLocation)
     : NodeInfo(Id, VcProjectName, CursorKindSpelling, Spelling, CxType, NameSpace, UserDescription, LLMDescription);
+public record NodeWithLocationDto(Guid NodeId, Location? DefineLocation, Location? ImplementationLocation);

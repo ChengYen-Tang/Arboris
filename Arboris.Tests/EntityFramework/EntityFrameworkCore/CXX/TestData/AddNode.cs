@@ -20,6 +20,7 @@ public partial class GenerateBuilder
         };
         Node node = new()
         {
+            VcProjectName = "Project1",
             CursorKindSpelling = "Class",
             Spelling = "RootNode1",
             ProjectId = Projects[0].Id,
@@ -58,6 +59,7 @@ public partial class GenerateBuilder
         };
         Node node = new()
         {
+            VcProjectName = "Project1",
             CursorKindSpelling = "Class",
             Spelling = "RootNode2",
             Project = Projects[1],
@@ -94,6 +96,7 @@ public partial class GenerateBuilder
         };
         Node node = new()
         {
+            VcProjectName = "Project1",
             CursorKindSpelling = "Function",
             Spelling = "MemberNode",
             ProjectId = Projects[0].Id,
@@ -130,6 +133,7 @@ public partial class GenerateBuilder
         };
         Node node = new()
         {
+            VcProjectName = "Project1",
             CursorKindSpelling = "Class",
             Spelling = "TypeNode",
             ProjectId = Projects[0].Id,
@@ -166,6 +170,7 @@ public partial class GenerateBuilder
         };
         Node node = new()
         {
+            VcProjectName = "Project1",
             CursorKindSpelling = "Class",
             Spelling = "DependencyNode",
             Project = Projects[0],

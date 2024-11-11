@@ -1,6 +1,4 @@
-﻿using Arboris.EntityFramework.EntityFrameworkCore;
-
-namespace Arboris.Tests.EntityFramework.CXX.TestData;
+﻿namespace Arboris.Tests.EntityFramework.CXX.TestData;
 
 public partial class GenerateBuilder(ArborisDbContext db)
 {

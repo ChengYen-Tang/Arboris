@@ -58,7 +58,7 @@ public class Project(ILogger<Project> logger, CxxAggregate cxxAggregate)
                 }
 
                 // Sync code info
-                Result result = await cxxAggregate.UpdateUserDescription(id, codeInfo.VcProjectName, codeInfo.NameSpace, codeInfo.ClassName, codeInfo.Spelling, codeInfo.CxType, codeInfo.Description);
+                Result result = await cxxAggregate.UpdateUserDescriptionAsync(id, codeInfo.VcProjectName, codeInfo.NameSpace, codeInfo.ClassName, codeInfo.Spelling, codeInfo.CxType, codeInfo.Description);
                 if (result.IsFailed)
                     logger.LogWarning("Project id: {Id}, Node not found in database: {NameSpace}, {ClassName}, {Spelling}, {CxType}", id, codeInfo.NameSpace, codeInfo.ClassName, codeInfo.Spelling, codeInfo.CxType);
             }

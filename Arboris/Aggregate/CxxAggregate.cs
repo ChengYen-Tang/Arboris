@@ -9,17 +9,17 @@ public class CxxAggregate(ICxxRepository nodeRepository)
 {
     public async Task<(Guid id, bool isExist)> AddNodeAsync(AddNode addNode)
     {
-        Result<Guid> checkNodeExistsResult = await nodeRepository.CheckNodeExists(addNode);
+        Result<Guid> checkNodeExistsResult = await nodeRepository.CheckNodeExistsAsync(addNode);
         if (checkNodeExistsResult.IsSuccess)
             return (checkNodeExistsResult.Value, true);
         return (await nodeRepository.AddNodeAsync(addNode), false);
     }
 
     public Task<Result<Node>> GetNodeFromDefineLocation(Guid projectId, string vcProjectName, Location location)
-        => nodeRepository.GetNodeFromDefineLocation(projectId, vcProjectName, location);
+        => nodeRepository.GetNodeFromDefineLocationAsync(projectId, vcProjectName, location);
 
-    public Task<Result> UpdateNodeAsync(Node node)
-        => nodeRepository.UpdateNodeAsync(node);
+    public Task<Result> UpdateNodeLocationAsync(NodeWithLocationDto node)
+        => nodeRepository.UpdateNodeLocationAsync(node);
 
     public Task<Result> LinkMemberAsync(Guid projectId, string vcProjectName, Location classLocation, Guid memberId)
         => nodeRepository.LinkMemberAsync(projectId, vcProjectName, classLocation, memberId);
@@ -32,7 +32,7 @@ public class CxxAggregate(ICxxRepository nodeRepository)
 
     public async Task<Result> LinkTypeAsync(Guid projectId, string vcProjectName, Location nodeLocation, Location typeLocation, bool isImplementation)
     {
-        Result<Node> nodeResult = await nodeRepository.GetNodeFromDefineLocation(projectId, vcProjectName, nodeLocation);
+        Result<Node> nodeResult = await nodeRepository.GetNodeFromDefineLocationAsync(projectId, vcProjectName, nodeLocation);
         if (nodeResult.IsFailed)
             return nodeResult.ToResult();
 
@@ -152,7 +152,7 @@ public class CxxAggregate(ICxxRepository nodeRepository)
 
     public async Task<Result<ForUtServiceFuncInfo>> GetFuncInfoForUtService(Guid id)
     {
-        Task<Result<Node>> nodeTask = nodeRepository.GetNode(id);
+        Task<Result<Node>> nodeTask = nodeRepository.GetNodeAsync(id);
         Task<string?> classNameTask = nodeRepository.GetClassFromNodeAsync(id);
         await Task.WhenAll(nodeTask, classNameTask);
 
@@ -166,6 +166,6 @@ public class CxxAggregate(ICxxRepository nodeRepository)
         return new ForUtServiceFuncInfo(filePath, nodeResult.Value.Spelling, nodeResult.Value.CxType, nodeResult.Value.NameSpace, className, nodeResult.Value.CursorKindSpelling);
     }
 
-    public Task<Result> UpdateUserDescription(Guid projectId, string vcProjectName, string? nameSpace, string? className, string? spelling, string? cxType, string? description)
-        => nodeRepository.UpdateUserDescription(projectId, vcProjectName, nameSpace, className, spelling, cxType, description);
+    public Task<Result> UpdateUserDescriptionAsync(Guid projectId, string vcProjectName, string? nameSpace, string? className, string? spelling, string? cxType, string? description)
+        => nodeRepository.UpdateUserDescriptionAsync(projectId, vcProjectName, nameSpace, className, spelling, cxType, description);
 }

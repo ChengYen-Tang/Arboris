@@ -1,0 +1,55 @@
+trigger:
+  branches:
+    include:
+    - '*'  # must quote since "*" is a YAML reserved character; we want a string
+
+variables:
+  buildConfiguration: 'Release'
+
+stages:
+- stage: Build_and_Test
+  displayName: 'Build and test projects'
+  jobs:
+  - job: 'Windows'
+    displayName: 'Build and test project on Windows platform'
+    pool:
+      name: ATW_Windows
+    steps:
+    - task: SonarQubePrepare@7
+      displayName: 'Prepare Analysis Configuration task'
+      inputs:
+        SonarQube: 'SonarQube'
+        scannerMode: 'dotnet'
+        projectKey: 'Arboris'
+        extraProperties: sonar.cs.opencover.reportsPaths=$(Common.TestResultsDirectory)/Coverage/coverage.opencover.xml
+    - task: UseDotNet@2
+      displayName: 'Use .NET Core sdk'
+      inputs:
+        packageType: sdk
+        version: 8.x
+    - task: DotNetCoreCLI@2
+      displayName: Restore
+      inputs:
+        command: 'restore'
+        projects: '**/*.csproj'
+    - task: DotNetCoreCLI@2
+      displayName: Build
+      inputs:
+        command: 'build'
+        projects: '**/*.csproj'
+        arguments: '--configuration $(buildConfiguration)'
+    - task: DotNetCoreCLI@2
+      displayName: Test
+      inputs:
+        command: test
+        projects: '**/*Tests/*.csproj'
+        arguments: '--no-build --configuration $(buildConfiguration) --logger trx --results-directory $(Common.TestResultsDirectory) -v n /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:MergeWith=$(Common.TestResultsDirectory)/coverage.json /p:CoverletOutput=$(Common.TestResultsDirectory)/Coverage/'
+        publishTestResults: false
+    - task: SonarQubeAnalyze@7
+      displayName: 'Run Code Analysis task'
+      inputs:
+        jdkversion: 'JAVA_HOME_17_X64'
+    - task: SonarQubePublish@7
+      displayName: 'Publish Quality Gate Result task'
+      inputs:
+        pollingTimeoutSec: '300'

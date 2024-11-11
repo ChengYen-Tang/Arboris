@@ -1,6 +1,4 @@
-﻿using Arboris.EntityFramework.EntityFrameworkCore;
-
-namespace Arboris.Tests.EntityFramework.Repositories.TestData;
+﻿namespace Arboris.Tests.EntityFramework.Repositories.TestData;
 
 public partial class GenerateBuilder
 {
@@ -8,12 +6,10 @@ public partial class GenerateBuilder
 
     public GenerateBuilder GenerateProject1()
     {
-        Project project = new()
-        {
-            Name = "Project1"
-        };
+        Project project = new();
         Projects.Add(project);
         db.Projects.Add(project);
+        db.SaveChanges();
 
         return this;
     }
@@ -23,12 +19,10 @@ public partial class GenerateBuilder
         if (Projects.Count < 1)
             throw new InvalidOperationException("Project1 must be generated before Project2");
 
-        Project project = new()
-        {
-            Name = "Project2"
-        };
+        Project project = new();
         Projects.Add(project);
         db.Projects.Add(project);
+        db.SaveChanges();
 
         return this;
     }

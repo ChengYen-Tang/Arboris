@@ -59,7 +59,7 @@ public class ArborisDbContext(DbContextOptions<ArborisDbContext> options) : DbCo
             entity.HasOne(nm => nm.Member)
                 .WithMany()
                 .HasForeignKey(c => c.MemberId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.ClientCascade);
         });
 
         builder.Entity<NodeType>(entity =>
@@ -71,7 +71,7 @@ public class ArborisDbContext(DbContextOptions<ArborisDbContext> options) : DbCo
             entity.HasOne(nt => nt.Type)
                 .WithMany()
                 .HasForeignKey(c => c.TypeId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.ClientCascade);
         });
 
         builder.Entity<NodeDependency>(entity =>
@@ -83,7 +83,7 @@ public class ArborisDbContext(DbContextOptions<ArborisDbContext> options) : DbCo
             entity.HasOne(d => d.From)
                 .WithMany()
                 .HasForeignKey(c => c.FromId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.ClientCascade);
         });
     }
 }
