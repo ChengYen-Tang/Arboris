@@ -161,7 +161,7 @@ public class Clang : IDisposable
                 using CXString defineFileName = defineFIle.Name;
                 Location defineLocation = new(GetRelativePath(defineFileName.ToString()), defineStartLine, defineEndLine);
                 logger.LogDebug("DefineLocation-> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", defineStartLine, defineEndLine, defineFileName);
-                if (cursor.CursorKind == CXCursorKind.CXCursor_ClassDecl || cursor.CursorKind == CXCursorKind.CXCursor_StructDecl || defineLocation == location)
+                if (cursor.CursorKind == CXCursorKind.CXCursor_ClassDecl || cursor.CursorKind == CXCursorKind.CXCursor_StructDecl || (defineLocation == location && !cursor.CursorChildren.Any(item => item.CursorKind == CXCursorKind.CXCursor_CompoundStmt)))
                 {
                     AddNode addNode = new(projectId, projectConfig.ProjectName, cursor.CursorKindSpelling, cursor.Spelling, cXType.ToString(), nameSpace, location, null);
                     await InsertNode(addNode, decl);
@@ -169,26 +169,14 @@ public class Clang : IDisposable
                 else
                 {
                     await ScanNode(defineLocation.FilePath);
-
-                    Result<Node> node = await cxxAggregate.GetNodeFromDefineLocation(projectId, projectConfig.SourcePath, defineLocation);
-                    //Debug.Assert(node.IsSuccess, "Node not found for DefineLocation");
-                    if (node.IsSuccess)
-                    {
-                        node.Value.ImplementationLocation = location;
-                        Result updateResult = await cxxAggregate.UpdateNodeLocationAsync(new(node.Value.Id, node.Value.DefineLocation, location));
-                        Debug.Assert(updateResult.IsSuccess, "Update Node failed");
-                    }
-                    else
-                    {
-                        AddNode addNode = new(projectId, projectConfig.ProjectName, cursor.CursorKindSpelling, cursor.Spelling, cXType.ToString(), nameSpace, location, null);
-                        await InsertNode(addNode, decl);
-                    }
+                    AddNode addNode = new(projectId, projectConfig.ProjectName, cursor.CursorKindSpelling, cursor.Spelling, cXType.ToString(), nameSpace, defineLocation == location ? null : defineLocation, location);
+                    await cxxAggregate.InsertorUpdateImplementationLocationAsync(addNode);
                 }
             }
             else
             {
                 AddNode addNode = new(projectId, projectConfig.ProjectName, cursor.CursorKindSpelling, cursor.Spelling, cXType.ToString(), nameSpace, null, location);
-                await InsertNode(addNode, null);
+                await cxxAggregate.InsertorUpdateImplementationLocationAsync(addNode);
             }
         }
 
@@ -203,8 +191,10 @@ public class Clang : IDisposable
     {
         logger.LogDebug("Add Node-> ProjectId: {ProjectId}, CursorKindSpelling: {CursorKindSpelling}, Spelling: {Spelling}", projectId, addNode.CursorKindSpelling, addNode.Spelling);
         (Guid nodeId, bool isExist) = await cxxAggregate.AddNodeAsync(addNode);
-        if (decl is null || isExist)
+        if (decl is null || isExist || addNode.DefineLocation is null)
             return;
+
+        // link class or struct member
         if (decl.LexicalDeclContext is not null && ((Decl)decl.LexicalDeclContext).CursorKind is CXCursorKind.CXCursor_ClassDecl or CXCursorKind.CXCursor_StructDecl)
         {
             ((Decl)decl.LexicalDeclContext).Extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint _, out uint _);

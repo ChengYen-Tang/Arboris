@@ -1,4 +1,5 @@
 ﻿using Arboris.Repositories;
+using Arboris.Service.Controllers;
 using Hangfire;
 
 namespace Arboris.Service.Modules;
@@ -24,6 +25,21 @@ public class GarbageCollection(
         catch (Exception ex)
         {
             logger.LogError(ex, "projectRepository.DeleteTooOldProjectAsync Failed. Error message: {ErrorMessage}", ex.Message);
+        }
+
+        string[] projects = (await projectRepository.GetProjectsAsync()).AsParallel().Select(item => item.Id.ToString()).ToArray();
+        // Get all folder from ProjectController.CacheDirectory
+        IEnumerable<string> needDeleteFolder = Directory.GetDirectories(ProjectController.CacheDirectory).AsParallel().Where(item => !projects.Contains(Path.GetDirectoryName(item)));
+        foreach (string folder in needDeleteFolder)
+        {
+            try
+            {
+                Directory.Delete(folder, true);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Directory.Delete Failed. Error message: {ErrorMessage}", ex.Message);
+            }
         }
     }
 }

@@ -25,21 +25,16 @@ public class ProjectAggregate(ICxxRepository cxxRepository, IProjectRepository p
                 sb.Append(className).Append("::");
             sb.Append(node.Spelling);
 
-            string[] relativePaths;
+            List<string> relativePaths = [];
+
+            if (node.DefineLocation is not null)
+                relativePaths.Add(node.DefineLocation!.FilePath);
 
             if (node.ImplementationLocation is not null)
-            {
-                relativePaths = new string[2];
-                relativePaths[1] = node.ImplementationLocation!.FilePath;
-            }
-            else
-            {
-                relativePaths = new string[1];
-            }
-            relativePaths[0] = node.DefineLocation!.FilePath;
+                relativePaths.Add(node.ImplementationLocation!.FilePath);
 
             string? description = string.IsNullOrWhiteSpace(node.UserDescription) ? node.LLMDescription : node.UserDescription;
-            return new ProjectReport(node.Id, node.VcProjectName, sb.ToString(), node.Spelling, node.CxType, className, node.NameSpace, description, relativePaths);
+            return new ProjectReport(node.Id, node.VcProjectName, sb.ToString(), node.Spelling, node.CxType, className, node.NameSpace, description, [.. relativePaths]);
         }).ToArray();
 
         return report;

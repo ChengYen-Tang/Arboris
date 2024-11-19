@@ -23,11 +23,10 @@ builder.Services.Configure<FormOptions>(options =>
     options.MultipartBodyLengthLimit = long.MaxValue;
 });
 
-Log.Logger = new LoggerConfiguration()
+builder.Services.AddSerilog((services, lc) => lc
+    .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
-    .WriteTo.Console(outputTemplate: "{Timestamp:o} {RequestId,13} [{Level:u3}] [{SourceContext} {Method}] {Message} ({EventId:x8}){NewLine}{Exception}")
-    .CreateLogger();
-builder.Services.AddSerilog();
+    .WriteTo.Console(outputTemplate: "{Timestamp:o} {RequestId,13} [{Level:u3}] [{SourceContext} {Method}] {Message} ({EventId:x8}){NewLine}{Exception}"));
 
 // Add services to the container.
 builder.Services.AddPooledDbContextFactory<ArborisDbContext>(options =>

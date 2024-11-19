@@ -12,6 +12,7 @@ public class OverallNode
 {
     public Guid Id { get; set; }
     public string? CursorKindSpelling { get; set; }
+    public bool NeedGenerate { get; set; }
 }
 
 public class OverallNodeMember

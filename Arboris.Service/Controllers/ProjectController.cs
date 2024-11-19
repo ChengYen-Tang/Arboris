@@ -16,7 +16,7 @@ namespace Arboris.Service.Controllers;
 [ApiController]
 public class ProjectController(ILogger<ProjectController> logger, IProjectRepository projectRepository, Project project, ClangFactory clangFactory, ProjectAggregate projectAggregate, CxxAggregate cxxAggregate) : ControllerBase
 {
-    private static readonly string cacheDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Storage");
+    public static readonly string CacheDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Storage");
 
     /// <summary>
     /// Create a project
@@ -87,7 +87,7 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
             return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
 
-        string projectCacheDirectory = Path.Combine(cacheDirectory, id.ToString());
+        string projectCacheDirectory = Path.Combine(CacheDirectory, id.ToString());
         if (Directory.Exists(projectCacheDirectory))
             Directory.Delete(projectCacheDirectory, true);
         Directory.CreateDirectory(projectCacheDirectory);

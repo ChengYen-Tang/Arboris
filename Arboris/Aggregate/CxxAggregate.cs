@@ -15,12 +15,6 @@ public class CxxAggregate(ICxxRepository nodeRepository)
         return (await nodeRepository.AddNodeAsync(addNode), false);
     }
 
-    public Task<Result<Node>> GetNodeFromDefineLocation(Guid projectId, string vcProjectName, Location location)
-        => nodeRepository.GetNodeFromDefineLocationAsync(projectId, vcProjectName, location);
-
-    public Task<Result> UpdateNodeLocationAsync(NodeWithLocationDto node)
-        => nodeRepository.UpdateNodeLocationAsync(node);
-
     public Task<Result> LinkMemberAsync(Guid projectId, string vcProjectName, Location classLocation, Guid memberId)
         => nodeRepository.LinkMemberAsync(projectId, vcProjectName, classLocation, memberId);
 
@@ -168,4 +162,24 @@ public class CxxAggregate(ICxxRepository nodeRepository)
 
     public Task<Result> UpdateUserDescriptionAsync(Guid projectId, string vcProjectName, string? nameSpace, string? className, string? spelling, string? cxType, string? description)
         => nodeRepository.UpdateUserDescriptionAsync(projectId, vcProjectName, nameSpace, className, spelling, cxType, description);
+
+    public async Task<Result> InsertorUpdateImplementationLocationAsync(AddNode addNode)
+    {
+        if (addNode.DefineLocation is not null)
+        {
+            Result<Node> node = await nodeRepository.GetNodeFromDefineLocationAsync(addNode.ProjectId, addNode.VcProjectName, addNode.DefineLocation);
+            if (node.IsSuccess)
+            {
+                Result UpdateResulr = await nodeRepository.UpdateNodeLocationAsync(new(node.Value.Id, node.Value.DefineLocation, addNode.ImplementationLocation));
+                if (UpdateResulr.IsFailed)
+                    return UpdateResulr;
+                return Result.Ok();
+            }
+        }
+        bool isExists = await nodeRepository.CheckImplementationNodeExistsAsync(addNode);
+        if (isExists)
+            return Result.Ok();
+        await nodeRepository.AddNodeAsync(addNode);
+        return Result.Ok();
+    }
 }
