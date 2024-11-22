@@ -130,7 +130,7 @@ public class AddNodeAsyncTests
         await cxxRepository.AddNodeAsync(node2);
 
 
-        Result<Guid> nodeId = await cxxRepository.CheckNodeExistsAsync(node1);
+        Result<Guid> nodeId = await cxxRepository.CheckDefineNodeExistsAsync(node1);
         Assert.IsTrue(nodeId.IsSuccess);
         Assert.IsTrue(await cxxRepository.CheckImplementationNodeExistsAsync(node2));
         Result<Models.Analyze.CXX.Node> result = await cxxRepository.GetNodeAsync(nodeId.Value);

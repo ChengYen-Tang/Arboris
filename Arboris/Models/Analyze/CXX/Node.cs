@@ -12,9 +12,10 @@ public class Node
     public string? NameSpace { get; set; }
     public Location? DefineLocation { get; set; }
     public Location? ImplementationLocation { get; set; }
+    public IReadOnlySet<string>? IncludeStrings { get; set; }
 }
 
 public record NodeInfo(Guid Id, string VcProjectName, string? CursorKindSpelling, string? Spelling, string? CxType, string? NameSpace, string? UserDescription, string? LLMDescription);
-public record NodeInfoWithLocation(Guid Id, string VcProjectName, string? CursorKindSpelling, string? Spelling, string? CxType, string? NameSpace, string? UserDescription, string? LLMDescription, Location? DefineLocation, Location? ImplementationLocation)
+public record NodeInfoWithLocation(Guid Id, string VcProjectName, string? CursorKindSpelling, string? Spelling, string? CxType, string? NameSpace, string? UserDescription, string? LLMDescription, IReadOnlySet<string>? IncludeStrings, Location? DefineLocation, Location? ImplementationLocation)
     : NodeInfo(Id, VcProjectName, CursorKindSpelling, Spelling, CxType, NameSpace, UserDescription, LLMDescription);
 public record NodeWithLocationDto(Guid NodeId, Location? DefineLocation, Location? ImplementationLocation);

@@ -123,4 +123,19 @@ public partial class GenerateBuilder
 
         return this;
     }
+
+    public GenerateBuilder GenerateTypeNode3()
+    {
+        if (Projects.Count < 2)
+            throw new InvalidOperationException("Project1 must be generated before TypeNode");
+        if (Nodes.Count < 1)
+            throw new InvalidOperationException("RootNode1 must be generated before TypeNode");
+        AddNode addNode = Generator.GenerateAddNodeWithTypeNode(Projects[1].Id);
+        Result<Guid> id = repository.AddNodeAsync(addNode).Result;
+        Result<Node> node = repository.GetNodeAsync(id.Value).Result;
+        Nodes.Add(node.Value);
+        Locations.Add(node.Value.DefineLocation!);
+
+        return this;
+    }
 }
