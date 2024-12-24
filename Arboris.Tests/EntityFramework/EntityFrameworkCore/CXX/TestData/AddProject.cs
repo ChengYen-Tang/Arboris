@@ -6,7 +6,12 @@ public partial class GenerateBuilder
 
     public GenerateBuilder GenerateProject1()
     {
-        Project project = new();
+        Guid projectId = Guid.NewGuid();
+        Project project = new()
+        {
+            Id = projectId,
+            SolutionName = projectId.ToString()
+        };
         Projects.Add(project);
         db.Projects.Add(project);
 
@@ -18,7 +23,12 @@ public partial class GenerateBuilder
         if (Projects.Count < 1)
             throw new InvalidOperationException("Project1 must be generated before Project2");
 
-        Project project = new();
+        Guid projectId = Guid.NewGuid();
+        Project project = new()
+        {
+            Id = projectId,
+            SolutionName = projectId.ToString()
+        };
         Projects.Add(project);
         db.Projects.Add(project);
 

@@ -241,6 +241,31 @@ public class CxxAggregate(ICxxRepository nodeRepository)
         return new ForUtServiceFuncInfo(filePath, nodeResult.Value.Spelling, nodeResult.Value.CxType, nodeResult.Value.NameSpace, className, nodeResult.Value.CursorKindSpelling);
     }
 
+    public async Task<Result<ForCompileDto>> GetForCompileDtoAsync(Guid id)
+    {
+        Result<Node> node = await nodeRepository.GetNodeAsync(id);
+        if (node.IsFailed)
+            return node.ToResult();
+        string filePath = node.Value.ImplementationLocation is not null ? node.Value.ImplementationLocation.FilePath : node.Value.DefineLocation!.FilePath;
+        return new ForCompileDto(filePath, node.Value.IncludeStrings);
+    }
+
+    public async Task<Result<ForGenerateCodeDto>> GetForGenerateCodeDtoAsync(Guid id)
+    {
+        Result<Node> node = await nodeRepository.GetNodeAsync(id);
+        if (node.IsFailed)
+            return node.ToResult();
+        string filePath = node.Value.ImplementationLocation is not null ? node.Value.ImplementationLocation.FilePath : node.Value.DefineLocation!.FilePath;
+        List<string> relativePaths = [];
+
+        if (node.Value.DefineLocation is not null)
+            relativePaths.Add(node.Value.DefineLocation!.FilePath);
+
+        if (node.Value.ImplementationLocation is not null)
+            relativePaths.Add(node.Value.ImplementationLocation!.FilePath);
+        return new ForGenerateCodeDto(node.Value.Spelling!, filePath, [.. relativePaths]);
+    }
+
     /// <summary>
     /// Update the user description of the node
     /// </summary>

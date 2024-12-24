@@ -8,12 +8,12 @@ namespace Arboris.EntityFramework.Repositories;
 
 public class ProjectRepository(IDbContextFactory<ArborisDbContext> dbContextFactory) : IProjectRepository
 {
-    public async Task<Result> CreateProjectAsync(Guid Id)
+    public async Task<Result> CreateProjectAsync(Guid Id, string solutionName)
     {
         using ArborisDbContext db = await dbContextFactory.CreateDbContextAsync();
         if (await db.Projects.AnyAsync(item => item.Id == Id))
             return Result.Fail("Project already exists");
-        Project project = new() { Id = Id };
+        Project project = new() { Id = Id, SolutionName = solutionName };
         await db.Projects.AddAsync(project);
         await db.SaveChangesAsync();
         return Result.Ok();

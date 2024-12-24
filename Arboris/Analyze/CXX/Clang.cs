@@ -18,7 +18,7 @@ public class Clang : IDisposable
     private readonly Guid projectId;
     private readonly Index index;
     private readonly List<TranslationUnit> translationUnits;
-    private readonly ProjectConfig projectConfig;
+    private readonly ProjectInfo projectConfig;
     private readonly string solutionPath;
     private readonly string[] clangArgs;
     private readonly Uri projectUri;
@@ -39,7 +39,7 @@ public class Clang : IDisposable
         CXCursorKind.CXCursor_FieldDecl,
         CXCursorKind.CXCursor_CXXMethod];
 
-    public Clang(Guid projectId, string solutionPath, CxxAggregate cxxAggregate, ILogger<Clang> logger, ProjectConfig projectConfig)
+    public Clang(Guid projectId, string solutionPath, CxxAggregate cxxAggregate, ILogger<Clang> logger, ProjectInfo projectConfig)
     {
         this.projectId = projectId;
         this.solutionPath = solutionPath;
@@ -50,7 +50,7 @@ public class Clang : IDisposable
         translationUnits = [];
         index = Index.Create(false, false);
         List<string> args = ["-std=c++14", "-xc++"];
-        args.AddRange(projectConfig.IncludeDirectories.Select(item => $"-I{Path.Combine(solutionPath, item)}"));
+        args.AddRange(projectConfig.AdditionalIncludeDirectories.Select(item => $"-I{Path.Combine(solutionPath, item)}"));
         args.Add($"-I{Path.Combine(solutionPath, projectConfig.SourcePath)}");
         clangArgs = [.. args];
         IsFilesScaned = projectConfig.SourceCodePath.Select(item => item.Replace('\\', '/')).ToDictionary(item => item, _ => default(byte));
@@ -488,6 +488,6 @@ public class Clang : IDisposable
 
 public class ClangFactory(CxxAggregate cxxAggregate, ILogger<Clang> logger)
 {
-    public Clang Create(Guid projectId, string path, ProjectConfig projectConfig)
+    public Clang Create(Guid projectId, string path, ProjectInfo projectConfig)
         => new(projectId, path, cxxAggregate, logger, projectConfig);
 }
