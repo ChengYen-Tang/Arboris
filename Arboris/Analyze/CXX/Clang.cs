@@ -56,19 +56,46 @@ public class Clang : IDisposable
         IsFilesScaned = projectConfig.SourceCodePath.Select(item => item.Replace('\\', '/')).ToDictionary(item => item, _ => default(byte));
     }
 
-    public async Task Scan()
+    public async Task Scan(CancellationToken ct = default)
     {
         IReadOnlyList<string> codeFiles = [.. IsFilesScaned.Keys];
 
-        await ScanNode(codeFiles);
-        await ScanLink(codeFiles);
+        if (ct.IsCancellationRequested)
+        {
+            logger.LogWarning("Trigger CancellationRequested");
+            return;
+        }
+        await ScanNode(codeFiles, ct);
 
-        await RemoveTypeDeclarations();
+        if (ct.IsCancellationRequested)
+        {
+            logger.LogWarning("Trigger CancellationRequested");
+            return;
+        }
+        await ScanLink(codeFiles, ct);
+
+        if (ct.IsCancellationRequested)
+        {
+            logger.LogWarning("Trigger CancellationRequested");
+            return;
+        }
+        await RemoveTypeDeclarations(ct);
     }
 
-    private async Task RemoveTypeDeclarations()
+    private async Task RemoveTypeDeclarations(CancellationToken ct = default)
     {
+        if (ct.IsCancellationRequested)
+        {
+            logger.LogWarning("Trigger CancellationRequested");
+            return;
+        }
         Result<NodeInfo[]> nodeInfosResult = await cxxAggregate.GetDistinctClassAndStructNodeInfosAsync(projectId, projectConfig.ProjectName);
+
+        if (ct.IsCancellationRequested)
+        {
+            logger.LogWarning("Trigger CancellationRequested");
+            return;
+        }
         if (nodeInfosResult.IsFailed)
         {
             logger.LogWarning("GetDistinctClassAndStructNodeInfosAsync failed-> ProjectId: {ProjectId}, ProjectName: {ProjectName}, Error Message: {Message}", projectId, projectConfig.ProjectName, nodeInfosResult.Errors[0]);
@@ -77,6 +104,8 @@ public class Clang : IDisposable
         logger.LogDebug("GetDistinctClassAndStructNodeInfosAsync-> ProjectId: {ProjectId}, ProjectName: {ProjectName}, NodeInfos Count: {Count}", projectId, projectConfig.ProjectName, nodeInfosResult.Value.Length);
         foreach (var nodeInfo in nodeInfosResult.Value)
         {
+            if (ct.IsCancellationRequested)
+                break;
             logger.LogDebug("MoveTypeDeclarationLinkAsync-> NodeId: {NodeId}, ProjectId: {ProjectId}, ProjectName: {ProjectName}", nodeInfo.Id, projectId, projectConfig.ProjectName);
             Result moveResult = await cxxAggregate.MoveTypeDeclarationLinkAsync(projectId, nodeInfo);
             if (moveResult.IsFailed)
@@ -84,15 +113,24 @@ public class Clang : IDisposable
             Debug.Assert(moveResult.IsSuccess, "MoveTypeDeclarationDepandencyAsync failed");
         }
 
+        if (ct.IsCancellationRequested)
+        {
+            logger.LogWarning("Trigger CancellationRequested");
+            return;
+        }
         Result result = await cxxAggregate.RemoveTypeDeclarations(projectId, projectConfig.ProjectName);
         if (result.IsFailed)
             logger.LogWarning("RemoveTypeDeclarations failed-> ProjectId: {ProjectId}, ProjectName: {ProjectName}, Error Message: {Message}", projectId, projectConfig.ProjectName, result.Errors[0]);
     }
 
-    private async Task ScanNode(IReadOnlyList<string> codeFiles)
+    private async Task ScanNode(IReadOnlyList<string> codeFiles, CancellationToken ct = default)
     {
         foreach (string headerFile in codeFiles)
-            await ScanNode(headerFile);
+        {
+            if (ct.IsCancellationRequested)
+                break;
+            await ScanNode(headerFile, ct);
+        }
     }
 
     #region ScanNode
@@ -101,8 +139,10 @@ public class Clang : IDisposable
     /// </summary>
     /// <param name="codeFile"> Source code file </param>
     /// <returns></returns>
-    private async Task ScanNode(string codeFile)
+    private async Task ScanNode(string codeFile, CancellationToken ct = default)
     {
+        if (ct.IsCancellationRequested)
+            return;
         if (!IsFilesScaned.TryGetValue(codeFile, out byte value) || value == 1 || value == 2)
             return;
 
@@ -122,7 +162,9 @@ public class Clang : IDisposable
         translationUnits.Add(tu);
         foreach (var cursor in tu.TranslationUnitDecl.CursorChildren)
         {
-            await ExploreAstNode(cursor, includeStrings);
+            if (ct.IsCancellationRequested)
+                break;
+            await ExploreAstNode(cursor, includeStrings, ct: ct);
         }
         translationUnits.Remove(tu);
         IsFilesScaned[codeFile] = 2;
@@ -134,8 +176,10 @@ public class Clang : IDisposable
     /// <param name="cursor"> Ast node </param>
     /// <param name="nameSpace"> C++ code namespace </param>
     /// <returns></returns>
-    private async Task ExploreAstNode(Cursor cursor, HashSet<string> includeStrings, string? nameSpace = null)
+    private async Task ExploreAstNode(Cursor cursor, HashSet<string> includeStrings, string? nameSpace = null, CancellationToken ct = default)
     {
+        if (ct.IsCancellationRequested)
+            return;
         if (!cursor.Location.IsFromMainFile || inValidCursorKind.Contains(cursor.CursorKind))
             return;
 
@@ -174,15 +218,17 @@ public class Clang : IDisposable
                 }
                 else
                 {
-                    await ScanNode(defineLocation.FilePath);
+                    await ScanNode(defineLocation.FilePath, ct);
                     AddNode addNode = new(projectId, projectConfig.ProjectName, cursor.CursorKindSpelling, cursor.Spelling, cXType.ToString(), nameSpace, defineLocation == location ? null : defineLocation, location);
-                    await cxxAggregate.InsertorUpdateImplementationLocationAsync(addNode, includeStrings);
+                    Result result = await cxxAggregate.InsertorUpdateImplementationLocationAsync(addNode, includeStrings, ct);
+                    PrintErrorMessage(result);
                 }
             }
             else
             {
                 AddNode addNode = new(projectId, projectConfig.ProjectName, cursor.CursorKindSpelling, cursor.Spelling, cXType.ToString(), nameSpace, null, location);
-                await cxxAggregate.InsertorUpdateImplementationLocationAsync(addNode, includeStrings);
+                Result result = await cxxAggregate.InsertorUpdateImplementationLocationAsync(addNode, includeStrings, ct);
+                PrintErrorMessage(result);
             }
         }
 
@@ -190,7 +236,11 @@ public class Clang : IDisposable
             nameSpace = nameSpace is null ? cursor.Spelling : nameSpace + "::" + cursor.Spelling;
 
         foreach (var child in cursor.CursorChildren)
-            await ExploreAstNode(child, includeStrings, nameSpace);
+        {
+            if (ct.IsCancellationRequested)
+                break;
+            await ExploreAstNode(child, includeStrings, nameSpace, ct);
+        }
     }
 
     private async Task InsertNode(AddNode addNode, Decl? decl)
@@ -213,7 +263,7 @@ public class Clang : IDisposable
     }
     #endregion
 
-    private async Task ScanLink(IReadOnlyList<string> codeFiles)
+    private async Task ScanLink(IReadOnlyList<string> codeFiles, CancellationToken ct = default)
     {
         foreach (string file in codeFiles)
         {
@@ -224,13 +274,17 @@ public class Clang : IDisposable
             {
                 if (translationUnit != null)
                     translationUnit.Dispose();
-                return;
+                continue;
             }
+            if (ct.IsCancellationRequested)
+                break;
             translationUnits.Add(tu);
             foreach (var cursor in tu.TranslationUnitDecl.CursorChildren)
             {
-                await LinkNodeDependency(cursor);
-                await ScanAndLinkNodeType(cursor);
+                if (ct.IsCancellationRequested)
+                    break;
+                await LinkNodeDependency(cursor, ct: ct);
+                await ScanAndLinkNodeType(cursor, ct);
             }
             translationUnits.Remove(tu);
         }
@@ -254,9 +308,14 @@ public class Clang : IDisposable
             {
                 if (child.CursorKind == CXCursorKind.CXCursor_CompoundStmt)
                 {
-                    child.Extent.Start.GetExpansionLocation(out CXFile _, out uint startLine, out uint _, out uint _);
-                    child.Extent.End.GetExpansionLocation(out CXFile _, out uint _, out uint _, out uint _);
-                    return string.Join(Environment.NewLine, File.ReadLines(rootLocation.FilePath).Skip((int)rootLocation.StartLine - 1).Take((int)startLine - 1 - (int)rootLocation.StartLine + 1));
+                    child.Extent.Start.GetExpansionLocation(out CXFile _, out uint startLine, out uint startColumn, out uint _);
+                    if ((int)startLine != (int)rootLocation.StartLine)
+                        return string.Join(Environment.NewLine, File.ReadLines(rootLocation.FilePath).Skip((int)rootLocation.StartLine - 1).Take((int)startLine - (int)rootLocation.StartLine));
+                    else
+                    {
+                        string code = File.ReadLines(rootLocation.FilePath).Skip((int)rootLocation.StartLine - 1).First();
+                        return code[..((int)startColumn - 1)];
+                    }
                 }
             }
             return string.Join(Environment.NewLine, File.ReadLines(rootLocation.FilePath).Skip((int)rootLocation.StartLine - 1).Take((int)rootLocation.EndLine - (int)rootLocation.StartLine + 1));
@@ -265,42 +324,22 @@ public class Clang : IDisposable
             return string.Join(Environment.NewLine, File.ReadLines(rootLocation.FilePath).Skip((int)rootLocation.StartLine - 1).Take((int)rootLocation.EndLine - (int)rootLocation.StartLine + 1));
     }
 
-    private async Task ScanAndLinkNodeType(Cursor cursor)
+    private async Task LinkNodeDependency(Cursor cursor, Location? compoundStmtLocation = null, CancellationToken ct = default)
     {
-        if (!cursor.Location.IsFromMainFile)
+        if (ct.IsCancellationRequested)
             return;
-
-        cursor.Extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint startColumn, out uint _);
-        cursor.Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint endColumn, out uint _);
-        using CXString fileName = file.Name;
-        Location location = new(GetRelativePath(fileName.ToString()), startLine, endLine);
-        logger.LogDebug("Location-> StartLine: {StartLine}, EndLine: {EndLine}, StartColumn: {StartColumn}, EndColumn: {EndColumn}, FileName: {FileName}", startLine, endLine, startColumn, endColumn, location.FilePath);
-
-        if (validMemberCursorKind.Contains(cursor.CursorKind) && cursor is Decl decl)
-        {
-            decl.CanonicalDecl.Extent.Start.GetExpansionLocation(out CXFile defineFIle, out uint defineStartLine, out uint _, out uint _);
-            decl.CanonicalDecl.Extent.End.GetExpansionLocation(out CXFile _, out uint defineEndLine, out uint _, out uint _);
-            using CXString defineFileName = defineFIle.Name;
-            Location defineLocation = new(GetRelativePath(defineFileName.ToString()), defineStartLine, defineEndLine);
-            await ScanAndLinkNodeType(cursor, defineLocation);
-        }
-
-        foreach (var child in cursor.CursorChildren)
-            await ScanAndLinkNodeType(child);
-    }
-
-    private async Task LinkNodeDependency(Cursor cursor, Location? compoundStmtLocation = null)
-    {
         if (!cursor.Location.IsFromMainFile)
             return;
 
         if (compoundStmtLocation is not null)
-            await ScanDependency(cursor, compoundStmtLocation);
+            await ScanDependency(cursor, compoundStmtLocation, ct);
 
         foreach (var child in cursor.CursorChildren)
         {
+            if (ct.IsCancellationRequested)
+                break;
             if (compoundStmtLocation is not null)
-                await LinkNodeDependency(child, compoundStmtLocation);
+                await LinkNodeDependency(child, compoundStmtLocation, ct);
             else if (cursor.CursorKind == CXCursorKind.CXCursor_CompoundStmt)
             {
                 CompoundStmt stmt = (cursor as CompoundStmt)!;
@@ -310,15 +349,17 @@ public class Clang : IDisposable
                 decl.Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint _, out uint _);
                 using CXString fileName = file.Name;
                 Location csLocation = new(GetRelativePath(fileName.ToString()), startLine, endLine);
-                await LinkNodeDependency(child, csLocation);
+                await LinkNodeDependency(child, csLocation, ct);
             }
             else
-                await LinkNodeDependency(child);
+                await LinkNodeDependency(child, ct: ct);
         }
     }
 
-    private async Task ScanDependency(Cursor cursor, Location compoundStmtLocation)
+    private async Task ScanDependency(Cursor cursor, Location compoundStmtLocation, CancellationToken ct = default)
     {
+        if (ct.IsCancellationRequested)
+            return;
         if (cursor.CursorKind == CXCursorKind.CXCursor_DeclStmt)
             return;
         logger.LogDebug("ScanDependency-> CursorKind: {CursorKind}, Spelling: {Spelling}", cursor.CursorKind, cursor.Spelling);
@@ -411,8 +452,40 @@ public class Clang : IDisposable
         }
     }
 
-    private async Task ScanAndLinkNodeType(Cursor cursor, Location defineLocation)
+    private async Task ScanAndLinkNodeType(Cursor cursor, CancellationToken ct = default)
     {
+        if (ct.IsCancellationRequested)
+            return;
+        if (!cursor.Location.IsFromMainFile)
+            return;
+
+        cursor.Extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint startColumn, out uint _);
+        cursor.Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint endColumn, out uint _);
+        using CXString fileName = file.Name;
+        Location location = new(GetRelativePath(fileName.ToString()), startLine, endLine);
+        logger.LogDebug("Location-> StartLine: {StartLine}, EndLine: {EndLine}, StartColumn: {StartColumn}, EndColumn: {EndColumn}, FileName: {FileName}", startLine, endLine, startColumn, endColumn, location.FilePath);
+
+        if (validMemberCursorKind.Contains(cursor.CursorKind) && cursor is Decl decl)
+        {
+            decl.CanonicalDecl.Extent.Start.GetExpansionLocation(out CXFile defineFIle, out uint defineStartLine, out uint _, out uint _);
+            decl.CanonicalDecl.Extent.End.GetExpansionLocation(out CXFile _, out uint defineEndLine, out uint _, out uint _);
+            using CXString defineFileName = defineFIle.Name;
+            Location defineLocation = new(GetRelativePath(defineFileName.ToString()), defineStartLine, defineEndLine);
+            await ScanAndLinkNodeType(cursor, defineLocation, ct);
+        }
+
+        foreach (var child in cursor.CursorChildren)
+        {
+            if (ct.IsCancellationRequested)
+                break;
+            await ScanAndLinkNodeType(child, ct);
+        }
+    }
+
+    private async Task ScanAndLinkNodeType(Cursor cursor, Location defineLocation, CancellationToken ct = default)
+    {
+        if (ct.IsCancellationRequested)
+            return;
         if (cursor is CompoundStmt)
             return;
 
@@ -430,7 +503,11 @@ public class Clang : IDisposable
         }
 
         foreach (var child in cursor.CursorChildren)
-            await ScanAndLinkNodeType(child, defineLocation);
+        {
+            if (ct.IsCancellationRequested)
+                break;
+            await ScanAndLinkNodeType(child, defineLocation, ct);
+        }
     }
 
     private string GetRelativePath(string path)
@@ -440,7 +517,7 @@ public class Clang : IDisposable
         string relativePath = Uri.UnescapeDataString(projectUri.MakeRelativeUri(new Uri(path)).ToString()).Replace('\\', '/');
         string lastSegment = projectUri.Segments[projectUri!.Segments.Length - 1];
         if (relativePath.StartsWith(lastSegment))
-            return relativePath.Substring(lastSegment.Length + 1);
+            return relativePath[(lastSegment.Length + 1)..];
         return relativePath;
     }
 

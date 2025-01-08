@@ -11,9 +11,11 @@ public class Project
     public DateTime CreateTime { get; set; }
     [Required]
     public string SolutionName { get; set; }
+    [Required]
+    public bool IsLocked { get; set; }
 
     public ICollection<Node>? CxxNodes { get; set; }
 
     public Project()
-        => (CreateTime) = (DateTime.Now);
+        => (CreateTime, IsLocked) = (DateTime.Now, false);
 }

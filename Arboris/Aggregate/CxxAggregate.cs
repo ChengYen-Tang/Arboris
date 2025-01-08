@@ -280,8 +280,10 @@ public class CxxAggregate(ICxxRepository nodeRepository)
     public Task<Result> UpdateUserDescriptionAsync(Guid projectId, string vcProjectName, string? nameSpace, string? className, string? spelling, string? cxType, string? description)
         => nodeRepository.UpdateUserDescriptionAsync(projectId, vcProjectName, nameSpace, className, spelling, cxType, description);
 
-    public async Task<Result> InsertorUpdateImplementationLocationAsync(AddNode addNode, IReadOnlySet<string>? includeStrings)
+    public async Task<Result> InsertorUpdateImplementationLocationAsync(AddNode addNode, IReadOnlySet<string>? includeStrings, CancellationToken ct = default)
     {
+        if (ct.IsCancellationRequested)
+            return Result.Fail("Trigger CancellationRequested");
         if (addNode.DefineLocation is not null)
         {
             Result<Node> node = await nodeRepository.GetNodeFromDefineLocationAsync(addNode.ProjectId, addNode.VcProjectName, addNode.DefineLocation);

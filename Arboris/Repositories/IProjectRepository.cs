@@ -10,4 +10,5 @@ public interface IProjectRepository
     Task<GetProject[]> GetProjectsAsync();
     Task<Result> DeleteProjectAsync(Guid id);
     Task DeleteTooOldProjectAsync(int days);
+    Task<Result> UpdateLockedAsync(Guid id, bool isLocked);
 }
