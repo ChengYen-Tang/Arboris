@@ -155,7 +155,7 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
         #endregion
 
         #region Clang analysis
-        Clang clang = null!;
+        ClangCore clang = null!;
         try
         {
             foreach (ProjectInfo projectInfo in projectConfig.ProjectInfos)
