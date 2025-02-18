@@ -25,7 +25,7 @@ internal class ScanNode(ILogger logger, CxxAggregate cxxAggregate, Guid projectI
     private readonly Action<Result> PrintErrorMessage = printErrorMessage;
     private readonly Func<string, string> GetRelativePath = getRelativePath;
     private static readonly CXCursorKind[] validCursorKind = [
-    CXCursorKind.CXCursor_ClassDecl,
+        CXCursorKind.CXCursor_ClassDecl,
         CXCursorKind.CXCursor_CXXMethod,
         CXCursorKind.CXCursor_Constructor,
         CXCursorKind.CXCursor_Destructor,

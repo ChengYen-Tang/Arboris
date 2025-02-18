@@ -1,5 +1,6 @@
 ﻿using Arboris.Aggregate;
 using Arboris.Models.Graph.CXX;
+using Arboris.Repositories;
 using FluentResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,7 +8,7 @@ namespace Arboris.Service.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class CxxController(ILogger<CxxController> logger, CxxAggregate cxxAggregate) : ControllerBase
+public class CxxController(ILogger<CxxController> logger, ICxxRepository cxxRepository, CxxAggregate cxxAggregate) : ControllerBase
 {
     [HttpPut]
     [Route("UpdateDescription")]
@@ -194,6 +195,60 @@ public class CxxController(ILogger<CxxController> logger, CxxAggregate cxxAggreg
         {
             Guid errorId = Guid.NewGuid();
             logger.LogError(ex, "Error in cxxAggregate.GetNodeOtherInfoAsync({Id})", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
+        }
+    }
+
+    [HttpGet]
+    [Route("GetNodeInfoWithDependency")]
+    [ProducesResponseType(typeof(NodeInfoWithDependency), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetNodeInfoWithDependency(Guid id)
+    {
+        try
+        {
+            Result<NodeInfoWithDependency> result = await cxxAggregate.GetNodeInfoWithDependencyAsync(id);
+            if (result.IsFailed)
+            {
+                Guid errorId = Guid.NewGuid();
+                string message = string.Join(',', result.Errors.Select(item => item.Message));
+                logger.LogWarning("Error Id: {ErrId}, cxxAggregate.GetNodeInfoWithDependencyAsync({Id}) Failed, Error message: {Message}", errorId, id, message);
+                return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
+            }
+            return Ok(result.Value);
+        }
+        catch (Exception ex)
+        {
+            Guid errorId = Guid.NewGuid();
+            logger.LogError(ex, "Error in cxxAggregate.GetNodeInfoWithDependencyAsync({Id})", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
+        }
+    }
+
+    [HttpGet]
+    [Route("GetAllNodes")]
+    [ProducesResponseType(typeof(GetAllNodeDto[]), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetAllNodes(Guid projectId)
+    {
+        try
+        {
+            Result<GetAllNodeDto[]> result = await cxxRepository.GetAllNodeAsync(projectId);
+            if (result.IsFailed)
+            {
+                Guid errorId = Guid.NewGuid();
+                string message = string.Join(',', result.Errors.Select(item => item.Message));
+                logger.LogWarning("Error Id: {ErrId}, cxxRepository.GetAllNodeAsync({Id}) Failed, Error message: {Message}", errorId, projectId, message);
+                return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
+            }
+            return Ok(result.Value);
+        }
+        catch (Exception ex)
+        {
+            Guid errorId = Guid.NewGuid();
+            logger.LogError(ex, "Error in cxxRepository.GetAllNodeAsync({Id})", projectId);
             return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
     }

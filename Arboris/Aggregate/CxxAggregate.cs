@@ -161,6 +161,28 @@ public class CxxAggregate(ICxxRepository nodeRepository)
         return new NodeOtherInfoWithLocation(node.VcProjectName, sb.ToString(), node.Spelling, node.CxType, className, node.NameSpace, node.IncludeStrings, [.. relativePaths]);
     }
 
+    public async Task<Result<NodeInfoWithDependency>> GetNodeInfoWithDependencyAsync(Guid nodeId)
+    {
+        Task<Result<(string? NameSpace, string? Spelling, Guid? ClassNodeId)>> GetNodeInfoWithClassIdAsyncTask = nodeRepository.GetNodeInfoWithClassIdAsync(nodeId);
+        Task<Result<NodeSourceCode[]>> GetNodeSourceCodeAsyncTask = nodeRepository.GetNodeSourceCodeAsync(nodeId);
+        Task<Result<Guid[]>> GetNodeDependenciesIdAsyncTask = nodeRepository.GetNodeDependenciesIdAsync(nodeId);
+
+        await Task.WhenAll(GetNodeInfoWithClassIdAsyncTask, GetNodeSourceCodeAsyncTask, GetNodeDependenciesIdAsyncTask);
+
+        Result<(string? NameSpace, string? Spelling, Guid? ClassNodeId)> GetNodeInfoWithClassIdResult = GetNodeInfoWithClassIdAsyncTask.Result;
+        Result<NodeSourceCode[]> GetNodeSourceCodeResult = GetNodeSourceCodeAsyncTask.Result;
+        Result<Guid[]> GetNodeDependenciesIdResult = GetNodeDependenciesIdAsyncTask.Result;
+
+        if (GetNodeInfoWithClassIdResult.IsFailed)
+            return GetNodeInfoWithClassIdResult.ToResult();
+        if (GetNodeSourceCodeResult.IsFailed)
+            return GetNodeSourceCodeResult.ToResult();
+        if (GetNodeDependenciesIdResult.IsFailed)
+            return GetNodeDependenciesIdResult.ToResult();
+
+        return new NodeInfoWithDependency(GetNodeSourceCodeResult.Value, GetNodeInfoWithClassIdResult.Value.NameSpace, GetNodeInfoWithClassIdResult.Value.Spelling, GetNodeInfoWithClassIdResult.Value.ClassNodeId, GetNodeDependenciesIdResult.Value);
+    }
+
     public async Task<Result<ForDescriptionGraph>> GetGraphForDescription(Guid id)
     {
         Task<Result<ForDescriptionNode>> ForDescriptionNodeTask = nodeRepository.GetNodeForDescriptionAsync(id);

@@ -660,4 +660,61 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         await dbContext.SaveChangesAsync();
         return Result.Ok();
     }
+
+    public async Task<Result<Guid[]>> GetNodeDependenciesIdAsync(Guid nodeId)
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        return await dbContext.Cxx_NodeDependencies
+            .Where(item => item.NodeId == nodeId)
+            .Select(item => item.FromId)
+            .ToArrayAsync();
+    }
+
+    public async Task<Result<(string? NameSpace, string? Spelling, Guid? ClassNodeId)>> GetNodeInfoWithClassIdAsync(Guid nodeId)
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        Node? node = await dbContext.Cxx_Nodes
+            .Include(item => item.DefineLocation)
+            .Include(item => item.ImplementationLocation)
+            .FirstOrDefaultAsync(item => item.Id == nodeId);
+
+        if (node is null)
+            return Result.Fail<(string? NameSpace, string? Spelling, Guid? ClassNodeId)>("Node not found");
+
+        Guid? classNodeId = await dbContext.Cxx_NodeMembers
+            .Where(item => item.MemberId == nodeId)
+            .Select(item => item.NodeId)
+            .FirstOrDefaultAsync();
+
+        return (node.NameSpace, node.Spelling, classNodeId);
+    }
+
+    public async Task<Result<NodeSourceCode[]>> GetNodeSourceCodeAsync(Guid nodeId)
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        Node? node = await dbContext.Cxx_Nodes
+            .Include(item => item.DefineLocation)
+            .Include(item => item.ImplementationLocation)
+            .FirstOrDefaultAsync(item => item.Id == nodeId);
+
+        if (node is null)
+            return Result.Fail<NodeSourceCode[]>("Node not found");
+
+        List<NodeSourceCode> sourceCodes = [];
+        if (node.DefineLocation is not null)
+            sourceCodes.Add(new NodeSourceCode(node.DefineLocation.FilePath, node.DefineLocation.DisplayName, node.DefineLocation.SourceCode));
+        if (node.ImplementationLocation is not null)
+            sourceCodes.Add(new NodeSourceCode(node.ImplementationLocation.FilePath, node.ImplementationLocation.DisplayName, node.ImplementationLocation.SourceCode));
+
+        return sourceCodes.ToArray();
+    }
+
+    public async Task<Result<GetAllNodeDto[]>> GetAllNodeAsync(Guid projectId)
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        Project? project = await dbContext.Projects.Include(item => item.CxxNodes).FirstOrDefaultAsync(item => item.Id == projectId);
+        if (project is null)
+            return Result.Fail("Project not found");
+        return project.CxxNodes!.AsParallel().Select(item => new GetAllNodeDto(item.Id, item.CursorKindSpelling, item.VcProjectName)).ToArray();
+    }
 }

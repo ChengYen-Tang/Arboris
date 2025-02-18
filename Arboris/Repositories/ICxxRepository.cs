@@ -27,6 +27,10 @@ public interface ICxxRepository
     /// <returns></returns>
     Task<bool> CheckImplementationNodeExistsAsync(AddNode addNode);
 
+    Task<Result<GetAllNodeDto[]>> GetAllNodeAsync(Guid projectId);
+
+    Task<Result<Guid[]>> GetNodeDependenciesIdAsync(Guid nodeId);
+
     /// <summary>
     /// Get node infos, only class and struct
     /// </summary>
@@ -131,6 +135,10 @@ public interface ICxxRepository
     /// <param name="nodeId"> Node id </param>
     /// <returns></returns>
     Task<Result<Node>> GetNodeAsync(Guid nodeId);
+
+    Task<Result<(string? NameSpace, string? Spelling, Guid? ClassNodeId)>> GetNodeInfoWithClassIdAsync(Guid nodeId);
+
+    Task<Result<NodeSourceCode[]>> GetNodeSourceCodeAsync(Guid nodeId);
 
     /// <summary>
     /// Link a member to a class or struct
