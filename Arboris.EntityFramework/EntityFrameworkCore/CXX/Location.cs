@@ -3,30 +3,31 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Arboris.EntityFramework.EntityFrameworkCore.CXX;
 
-[Index(nameof(FilePath), nameof(StartLine))]
-[Index(nameof(FilePath), nameof(StartLine), nameof(EndLine))]
-[Index(nameof(FilePath), nameof(StartLine), nameof(EndLine), nameof(Id), nameof(NodeId))]
-[Index(nameof(Id), nameof(FilePath), nameof(StartLine))]
-[Index(nameof(Id), nameof(NodeId))]
-[Index(nameof(StartLine), nameof(EndLine), nameof(FilePath), nameof(Id), nameof(NodeId))]
-[Index(nameof(EndLine), nameof(FilePath))]
-[Index(nameof(NodeId), nameof(Id), nameof(FilePath), nameof(StartLine))]
-[Index(nameof(NodeId), nameof(FilePath), nameof(StartLine))]
-[Index(nameof(NodeId), nameof(StartLine), nameof(EndLine), nameof(FilePath))]
-[Index(nameof(NodeId), nameof(EndLine), nameof(FilePath))]
+[Index(nameof(StartLine), nameof(EndLine), nameof(StartColumn), nameof(EndColumn), nameof(NodeId), nameof(Id))]
+[Index(nameof(NodeId), nameof(StartLine), nameof(EndLine), nameof(StartColumn))]
+[Index(nameof(NodeId), nameof(Id), nameof(StartLine), nameof(EndLine))]
+[Index(nameof(EndColumn), nameof(NodeId), nameof(Id), nameof(StartLine), nameof(EndLine), nameof(StartColumn))]
+[Index(nameof(EndColumn), nameof(StartLine), nameof(EndLine))]
+[Index(nameof(NodeId), nameof(EndLine), nameof(StartColumn), nameof(EndColumn))]
+[Index(nameof(EndLine), nameof(StartColumn), nameof(EndColumn))]
+[Index(nameof(StartColumn), nameof(NodeId), nameof(Id), nameof(StartLine), nameof(EndLine))]
+[Index(nameof(StartColumn), nameof(StartLine), nameof(EndLine), nameof(EndColumn), nameof(NodeId))]
+[Index(nameof(Id), nameof(StartLine), nameof(EndLine), nameof(StartColumn), nameof(EndColumn))]
+[Index(nameof(EndColumn), nameof(StartLine), nameof(StartColumn))]
+[Index(nameof(NodeId), nameof(StartLine), nameof(EndLine), nameof(StartColumn))]
 public class DefineLocation : Location
 {
 }
 
-[Index(nameof(FilePath), nameof(StartLine))]
-[Index(nameof(FilePath), nameof(StartLine), nameof(EndLine))]
-[Index(nameof(FilePath), nameof(StartLine), nameof(EndLine), nameof(Id), nameof(NodeId))]
-[Index(nameof(Id), nameof(FilePath), nameof(StartLine), nameof(EndLine), nameof(NodeId))]
-[Index(nameof(Id), nameof(NodeId), nameof(FilePath), nameof(StartLine))]
-[Index(nameof(StartLine), nameof(EndLine))]
-[Index(nameof(EndLine), nameof(FilePath))]
-[Index(nameof(NodeId), nameof(FilePath), nameof(StartLine), nameof(EndLine))]
-[Index(nameof(NodeId), nameof(StartLine))]
+[Index(nameof(EndColumn), nameof(StartLine), nameof(EndLine), nameof(StartColumn), nameof(NodeId))]
+[Index(nameof(Id), nameof(StartLine), nameof(EndLine), nameof(StartColumn))]
+[Index(nameof(StartLine), nameof(EndLine), nameof(StartColumn), nameof(EndColumn), nameof(NodeId))]
+[Index(nameof(StartColumn), nameof(StartLine))]
+[Index(nameof(StartColumn), nameof(NodeId), nameof(Id), nameof(StartLine))]
+[Index(nameof(EndLine), nameof(StartColumn), nameof(EndColumn), nameof(StartLine), nameof(Id), nameof(NodeId))]
+[Index(nameof(EndColumn), nameof(NodeId), nameof(Id), nameof(StartLine), nameof(EndLine))]
+[Index(nameof(NodeId), nameof(Id), nameof(StartLine), nameof(StartColumn))]
+[Index(nameof(NodeId), nameof(EndLine), nameof(StartColumn), nameof(EndColumn))]
 public class ImplementationLocation : Location
 {
 }
@@ -40,7 +41,11 @@ public class Location
     [Required]
     public uint StartLine { get; set; }
     [Required]
+    public uint StartColumn { get; set; }
+    [Required]
     public uint EndLine { get; set; }
+    [Required]
+    public uint EndColumn { get; set; }
 
     public string? DisplayName { get; set; }
     public string? SourceCode { get; set; }
@@ -51,4 +56,10 @@ public class Location
 
     public Location()
         => Id = Guid.NewGuid();
+
+    public string ComputeSHA256Hash()
+    {
+        var hash = System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(FilePath + StartLine + StartColumn + EndLine + EndColumn));
+        return Convert.ToBase64String(hash);
+    }
 }

@@ -21,12 +21,13 @@ public class Node
     public string? LLMDescription { get; set; }
     public string? UserDescription { get; set; }
     public string? IncludeStringsJson { get; set; }
+    public string? AccessSpecifiers { get; set; }
 
     [Required]
     public Guid ProjectId { get; set; }
     public Project? Project { get; set; }
     public DefineLocation? DefineLocation { get; set; }
-    public ImplementationLocation? ImplementationLocation { get; set; }
+    public ICollection<ImplementationLocation> ImplementationsLocation { get; set; }
 
     public ICollection<NodeMember> Members { get; set; }
     public ICollection<NodeType> Types { get; set; }

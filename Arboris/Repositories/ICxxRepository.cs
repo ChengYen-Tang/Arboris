@@ -53,74 +53,7 @@ public interface ICxxRepository
     /// </summary>
     /// <param name="projectId"> Project id </param>
     /// <returns></returns>
-    Task<Result<OverallNode[]>> GetOverallNodeAsync(Guid projectId);
-
-    /// <summary>
-    /// Get all member links from a project
-    /// </summary>
-    /// <param name="projectId"> Project id </param>
-    /// <returns></returns>
-    Task<Result<OverallNodeMember[]>> GetOverallNodeMemberAsync(Guid projectId);
-
-    /// <summary>
-    /// Get all type links from a project
-    /// </summary>
-    /// <param name="projectId"> Project id </param>
-    /// <returns></returns>
-    Task<Result<OverallNodeType[]>> GetOverallNodeTypeAsync(Guid projectId);
-
-    /// <summary>
-    /// Get all dependency links from a project
-    /// </summary>
-    /// <param name="projectId"> Project id </param>
-    /// <returns></returns>
-    Task<Result<OverallNodeDependency[]>> GetOverallNodeDependencyAsync(Guid projectId);
-
-    /// <summary>
-    /// Get node from node id for description
-    /// </summary>
-    /// <param name="nodeId">  Node id  </param>
-    /// <returns> SourceCode + UserDescription </returns>
-    Task<Result<ForDescriptionNode>> GetNodeForDescriptionAsync(Guid nodeId);
-
-    /// <summary>
-    /// Get node from node id for unit test
-    /// </summary>
-    /// <param name="nodeId"> Node id </param>
-    /// <returns></returns>
-    Task<Result<OverViewNode>> GetForUnitTestNodeAsync(Guid nodeId);
-
-    /// <summary>
-    /// Get OverViewNode about node members
-    /// For Description or Unit Test
-    /// </summary>
-    /// <param name="nodeId"> Node id </param>
-    /// <returns></returns>
-    Task<Result<OverViewNode[]>> GetNodeMembersAsync(Guid nodeId);
-
-    /// <summary>
-    /// Get OverViewNode about node types
-    /// For Description or Unit Test
-    /// </summary>
-    /// <param name="nodeId"> Node id </param>
-    /// <returns></returns>
-    Task<Result<OverViewNode[]>> GetNodeTypesAsync(Guid nodeId);
-
-    /// <summary>
-    /// Get OverViewNode about node dependencies
-    /// For Description or Unit Test
-    /// </summary>
-    /// <param name="nodeId"> Node id </param>
-    /// <returns></returns>
-    Task<Result<OverViewNode[]>> GetNodeDependenciesAsync(Guid nodeId);
-
-    /// <summary>
-    /// Get all nodes from a project
-    /// </summary>
-    /// <param name="projectId"> Project id </param>
-    /// <returns></returns>
     Task<NodeInfoWithLocation[]> GetNodesFromProjectAsync(Guid projectId);
-    Task<Result<NodeInfoWithLocation>> GetNodeFromNodeIdAsync(Guid nodeId);
 
     /// <summary>
     /// Get class name from member node id
@@ -136,7 +69,7 @@ public interface ICxxRepository
     /// <returns></returns>
     Task<Result<Node>> GetNodeAsync(Guid nodeId);
 
-    Task<Result<(string? NameSpace, string? Spelling, Guid? ClassNodeId)>> GetNodeInfoWithClassIdAsync(Guid nodeId);
+    Task<Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, IReadOnlySet<string>? IncludeStrings, Guid? ClassNodeId)>> GetNodeInfoWithClassIdAsync(Guid nodeId);
 
     Task<Result<NodeSourceCode[]>> GetNodeSourceCodeAsync(Guid nodeId);
 
@@ -220,4 +153,6 @@ public interface ICxxRepository
     /// <param name="description"> User description </param>
     /// <returns></returns>
     Task<Result> UpdateUserDescriptionAsync(Guid projectId, string vcProjectName, string? nameSpace, string? className, string? spelling, string? cxType, string? description);
+
+    Task<Result<NodeLines>> GetNodeAndLineRangeFromFile(Guid projectId, string filePath, int line);
 }

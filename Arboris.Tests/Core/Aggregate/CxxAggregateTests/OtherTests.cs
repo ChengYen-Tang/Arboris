@@ -1,5 +1,4 @@
 ﻿using Arboris.EntityFramework.EntityFrameworkCore.CXX;
-using Arboris.Models.Graph.CXX;
 using Arboris.Tests.EntityFramework.Repositories.TestData;
 using Arboris.Tests.EntityFramework.Repositories.TestData.Generate;
 
@@ -54,22 +53,6 @@ public class OtherTests
         Assert.AreEqual("This is user description", node.UserDescription);
         node = db.Cxx_Nodes.Find(generateBuilder.Nodes[4].Id)!;
         Assert.AreEqual("This is user description(Member)", node.UserDescription);
-    }
-
-
-    [TestMethod]
-    public async Task TestGetNodeForDescriptionAsync()
-    {
-        await cxxAggregate.UpdateUserDescriptionAsync(generateBuilder.Projects[0].Id, generateBuilder.Nodes[0].VcProjectName, generateBuilder.Nodes[0].NameSpace, null, generateBuilder.Nodes[0].Spelling, generateBuilder.Nodes[0].CxType, "This is user description");
-        await cxxAggregate.UpdateUserDescriptionAsync(generateBuilder.Projects[1].Id, generateBuilder.Nodes[1].VcProjectName, generateBuilder.Nodes[1].NameSpace, null, generateBuilder.Nodes[1].Spelling, generateBuilder.Nodes[1].CxType, "This is user description(root node 2)");
-        Result<ForDescriptionNode> node = await cxxRepository.GetNodeForDescriptionAsync(generateBuilder.Nodes[0].Id);
-        Assert.IsTrue(node.IsSuccess);
-        Assert.AreEqual(null, node.Value.SourceCode);
-        Assert.AreEqual("This is user description", node.Value.UserDescription);
-        node = await cxxRepository.GetNodeForDescriptionAsync(generateBuilder.Nodes[1].Id);
-        Assert.IsTrue(node.IsSuccess);
-        Assert.AreEqual(generateBuilder.Locations[1].SourceCode, node.Value.SourceCode);
-        Assert.AreEqual("This is user description(root node 2)", node.Value.UserDescription);
     }
 
     [TestMethod]

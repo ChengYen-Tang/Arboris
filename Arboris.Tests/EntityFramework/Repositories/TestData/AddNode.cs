@@ -29,7 +29,7 @@ public partial class GenerateBuilder
         Result<Guid> id = repository.AddNodeAsync(addNode).Result;
         Result<Node> node = repository.GetNodeAsync(id.Value).Result;
         Nodes.Add(node.Value);
-        Locations.Add(node.Value.ImplementationLocation!);
+        Locations.AddRange(node.Value.ImplementationsLocation!);
 
         return this;
     }

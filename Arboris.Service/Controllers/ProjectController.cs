@@ -14,7 +14,7 @@ namespace Arboris.Service.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-public class ProjectController(ILogger<ProjectController> logger, IProjectRepository projectRepository, Project project, ClangFactory clangFactory, ProjectAggregate projectAggregate, CxxAggregate cxxAggregate) : ControllerBase
+public class ProjectController(ILogger<ProjectController> logger, IProjectRepository projectRepository, ICxxRepository cxxRepository, Project project, ClangFactory clangFactory, ProjectAggregate projectAggregate, CxxAggregate cxxAggregate) : ControllerBase
 {
     public static readonly string CacheDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Storage");
 
@@ -228,7 +228,7 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
         #region Return OverallGraph
         try
         {
-            Result<OverallGraph> overallGraph = await cxxAggregate.GetOverallGraphAsync(id);
+            Result<GetAllNodeDto[]> overallGraph = await cxxRepository.GetAllNodeAsync(id);
             if (overallGraph.IsFailed)
             {
                 await Cleanup(id, projectCacheDirectory);

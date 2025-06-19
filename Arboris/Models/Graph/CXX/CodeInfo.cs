@@ -10,5 +10,5 @@ public class CodeInfo
     public string? Description { get; set; }
 }
 
-public record BaseNodeInfo(string VcProjectName, string CodeName, string? Spelling, string? CxType, string? ClassName, string? NameSpace, string[] RelativeFilePaths);
-public record NodeOtherInfoWithLocation(string VcProjectName, string CodeName, string? Spelling, string? CxType, string? ClassName, string? NameSpace, IReadOnlySet<string>? IncludeStrings, string[] RelativeFilePaths);
+public record BaseNodeInfo(string VcProjectName, string CodeName, string? Spelling, string? CxType, string? AccessSpecifiers, string? ClassName, string? NameSpace, string[] RelativeFilePaths);
+public record NodeOtherInfoWithLocation(string VcProjectName, string CodeName, string? Spelling, string? CxType, string? AccessSpecifiers, string? ClassName, string? NameSpace, IReadOnlySet<string>? IncludeStrings, string[] RelativeFilePaths);

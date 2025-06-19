@@ -100,7 +100,7 @@ public partial class GenerateBuilder
             CursorKindSpelling = "Function",
             Spelling = "MemberNode",
             ProjectId = Projects[0].Id,
-            ImplementationLocation = cppLocation
+            ImplementationsLocation = [cppLocation]
         };
         DefineLocation hLocation = new()
         {
@@ -137,7 +137,7 @@ public partial class GenerateBuilder
             CursorKindSpelling = "Class",
             Spelling = "TypeNode",
             ProjectId = Projects[0].Id,
-            ImplementationLocation = cppLocation
+            ImplementationsLocation = [cppLocation]
         };
         DefineLocation hLocation = new()
         {

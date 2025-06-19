@@ -35,7 +35,7 @@ public class NodeTests
         Node node = await dbContext.Cxx_Nodes
             .Include(item => item.Project)
             .Include(item => item.DefineLocation)
-            .Include(item => item.ImplementationLocation)
+            .Include(item => item.ImplementationsLocation)
             .FirstAsync();
         Assert.AreEqual(generateBuilder.Nodes[0].Id, node.Id);
         Assert.AreEqual(generateBuilder.Nodes[0].VcProjectName, node.VcProjectName);
@@ -48,9 +48,9 @@ public class NodeTests
         Assert.AreEqual(generateBuilder.Locations[0].FilePath, node.DefineLocation!.FilePath);
         Assert.AreEqual(generateBuilder.Locations[0].StartLine, node.DefineLocation!.StartLine);
         Assert.AreEqual(generateBuilder.Locations[0].EndLine, node.DefineLocation!.EndLine);
-        Assert.AreEqual(generateBuilder.Locations[1].FilePath, node.ImplementationLocation!.FilePath);
-        Assert.AreEqual(generateBuilder.Locations[1].StartLine, node.ImplementationLocation!.StartLine);
-        Assert.AreEqual(generateBuilder.Locations[1].EndLine, node.ImplementationLocation!.EndLine);
+        Assert.AreEqual(generateBuilder.Locations[1].FilePath, node.ImplementationsLocation.First().FilePath);
+        Assert.AreEqual(generateBuilder.Locations[1].StartLine, node.ImplementationsLocation.First().StartLine);
+        Assert.AreEqual(generateBuilder.Locations[1].EndLine, node.ImplementationsLocation.First().EndLine);
     }
 
     [TestMethod]
@@ -71,7 +71,7 @@ public class NodeTests
         Node[] nodes = await dbContext.Cxx_Nodes
             .Include(item => item.Project)
             .Include(item => item.DefineLocation)
-            .Include(item => item.ImplementationLocation)
+            .Include(item => item.ImplementationsLocation)
             .OrderBy(item => item.Spelling)
             .ToArrayAsync();
 
@@ -85,9 +85,9 @@ public class NodeTests
         Assert.AreEqual(generateBuilder.Locations[0].FilePath, nodes[0].DefineLocation!.FilePath);
         Assert.AreEqual(generateBuilder.Locations[0].StartLine, nodes[0].DefineLocation!.StartLine);
         Assert.AreEqual(generateBuilder.Locations[0].EndLine, nodes[0].DefineLocation!.EndLine);
-        Assert.AreEqual(generateBuilder.Locations[1].FilePath, nodes[0].ImplementationLocation!.FilePath);
-        Assert.AreEqual(generateBuilder.Locations[1].StartLine, nodes[0].ImplementationLocation!.StartLine);
-        Assert.AreEqual(generateBuilder.Locations[1].EndLine, nodes[0].ImplementationLocation!.EndLine);
+        Assert.AreEqual(generateBuilder.Locations[1].FilePath, nodes[0].ImplementationsLocation.First().FilePath);
+        Assert.AreEqual(generateBuilder.Locations[1].StartLine, nodes[0].ImplementationsLocation.First().StartLine);
+        Assert.AreEqual(generateBuilder.Locations[1].EndLine, nodes[0].ImplementationsLocation.First().EndLine);
 
         Assert.AreEqual(generateBuilder.Nodes[1].Id, nodes[1].Id);
         Assert.AreEqual(generateBuilder.Nodes[1].VcProjectName, nodes[1].VcProjectName);
@@ -99,9 +99,9 @@ public class NodeTests
         Assert.AreEqual(generateBuilder.Locations[2].FilePath, nodes[1].DefineLocation!.FilePath);
         Assert.AreEqual(generateBuilder.Locations[2].StartLine, nodes[1].DefineLocation!.StartLine);
         Assert.AreEqual(generateBuilder.Locations[2].EndLine, nodes[1].DefineLocation!.EndLine);
-        Assert.AreEqual(generateBuilder.Locations[3].FilePath, nodes[1].ImplementationLocation!.FilePath);
-        Assert.AreEqual(generateBuilder.Locations[3].StartLine, nodes[1].ImplementationLocation!.StartLine);
-        Assert.AreEqual(generateBuilder.Locations[3].EndLine, nodes[1].ImplementationLocation!.EndLine);
+        Assert.AreEqual(generateBuilder.Locations[3].FilePath, nodes[1].ImplementationsLocation.First().FilePath);
+        Assert.AreEqual(generateBuilder.Locations[3].StartLine, nodes[1].ImplementationsLocation.First().StartLine);
+        Assert.AreEqual(generateBuilder.Locations[3].EndLine, nodes[1].ImplementationsLocation.First().EndLine);
         await dbContext.DisposeAsync();
 
         dbContext = await dbFactory.CreateDbContextAsync();
@@ -131,13 +131,13 @@ public class NodeTests
         Node[] nodes = await dbContext.Cxx_Nodes
             .Include(item => item.Project)
             .Include(item => item.DefineLocation)
-            .Include(item => item.ImplementationLocation)
+            .Include(item => item.ImplementationsLocation)
             .ToArrayAsync();
 
         Node rootNode = nodes.First(item => item.Spelling == "RootNode1");
 
         dbContext.Cxx_DefineLocations.Remove(rootNode.DefineLocation!);
-        dbContext.Cxx_ImplementationLocations.Remove(rootNode.ImplementationLocation!);
+        dbContext.Cxx_ImplementationLocations.Remove(rootNode.ImplementationsLocation.First());
         await dbContext.SaveChangesAsync();
 
         Assert.AreEqual(2, await dbContext.Cxx_Nodes.CountAsync());

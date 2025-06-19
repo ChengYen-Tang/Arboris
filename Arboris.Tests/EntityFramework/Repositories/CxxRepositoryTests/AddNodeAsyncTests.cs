@@ -36,14 +36,14 @@ public class AddNodeAsyncTests
         using ArborisDbContext db = await dbFactory.CreateDbContextAsync();
         Assert.AreEqual(1, await db.Cxx_Nodes.CountAsync());
         Assert.AreEqual(1, await db.Cxx_DefineLocations.CountAsync());
-        Node node = await db.Cxx_Nodes.Include(item => item.DefineLocation).Include(item => item.ImplementationLocation).FirstAsync();
+        Node node = await db.Cxx_Nodes.Include(item => item.DefineLocation).Include(item => item.ImplementationsLocation).FirstAsync();
         Assert.AreEqual(addNode.ProjectId, node.ProjectId);
         Assert.AreEqual(addNode.VcProjectName, node.VcProjectName);
         Assert.AreEqual(addNode.CursorKindSpelling, node.CursorKindSpelling);
         Assert.AreEqual(addNode.CxType, node.CxType);
         Assert.AreEqual(addNode.Spelling, node.Spelling);
         Assert.AreEqual(addNode.NameSpace, node.NameSpace);
-        Assert.IsNull(node.ImplementationLocation);
+        Assert.AreEqual(0, node.ImplementationsLocation.Count);
         Assert.AreEqual(addNode.DefineLocation!.FilePath, node.DefineLocation!.FilePath);
         Assert.AreEqual(addNode.DefineLocation.StartLine, node.DefineLocation.StartLine);
         Assert.AreEqual(addNode.DefineLocation.EndLine, node.DefineLocation.EndLine);
@@ -72,7 +72,7 @@ public class AddNodeAsyncTests
         Assert.AreEqual(1, await db.Cxx_Nodes.CountAsync());
         Assert.AreEqual(0, await db.Cxx_DefineLocations.CountAsync());
         Assert.AreEqual(1, await db.Cxx_ImplementationLocations.CountAsync());
-        Node node = await db.Cxx_Nodes.Include(item => item.DefineLocation).Include(item => item.ImplementationLocation).FirstAsync();
+        Node node = await db.Cxx_Nodes.Include(item => item.DefineLocation).Include(item => item.ImplementationsLocation).FirstAsync();
         Assert.AreEqual(node2.ProjectId, node.ProjectId);
         Assert.AreEqual(node2.VcProjectName, node.VcProjectName);
         Assert.AreEqual(node2.CursorKindSpelling, node.CursorKindSpelling);
@@ -80,9 +80,9 @@ public class AddNodeAsyncTests
         Assert.AreEqual(node2.Spelling, node.Spelling);
         Assert.AreEqual(node2.NameSpace, node.NameSpace);
         Assert.IsNull(node.DefineLocation);
-        Assert.AreEqual(node2.ImplementationLocation!.FilePath, node.ImplementationLocation!.FilePath);
-        Assert.AreEqual(node2.ImplementationLocation.StartLine, node.ImplementationLocation.StartLine);
-        Assert.AreEqual(node2.ImplementationLocation.EndLine, node.ImplementationLocation.EndLine);
+        Assert.AreEqual(node2.ImplementationLocation!.FilePath, node.ImplementationsLocation.First().FilePath);
+        Assert.AreEqual(node2.ImplementationLocation.StartLine, node.ImplementationsLocation.First().StartLine);
+        Assert.AreEqual(node2.ImplementationLocation.EndLine, node.ImplementationsLocation.First().EndLine);
         await db.DisposeAsync();
     }
 
@@ -114,9 +114,9 @@ public class AddNodeAsyncTests
         Assert.AreEqual(generateBuilder.Nodes[1].CxType, nodes[0].CxType);
         Assert.AreEqual(generateBuilder.Nodes[1].Spelling, nodes[0].Spelling);
         Assert.AreEqual(generateBuilder.Nodes[1].NameSpace, nodes[0].NameSpace);
-        Assert.AreEqual(generateBuilder.Nodes[1].ImplementationLocation!.FilePath, nodes[0].ImplementationLocation!.FilePath);
-        Assert.AreEqual(generateBuilder.Nodes[1].ImplementationLocation!.StartLine, nodes[0].ImplementationLocation!.StartLine);
-        Assert.AreEqual(generateBuilder.Nodes[1].ImplementationLocation!.EndLine, nodes[0].ImplementationLocation!.EndLine);
+        Assert.AreEqual(generateBuilder.Nodes[1].ImplementationsLocation.First().FilePath, nodes[0].ImplementationsLocation.First().FilePath);
+        Assert.AreEqual(generateBuilder.Nodes[1].ImplementationsLocation.First().StartLine, nodes[0].ImplementationsLocation.First().StartLine);
+        Assert.AreEqual(generateBuilder.Nodes[1].ImplementationsLocation.First().EndLine, nodes[0].ImplementationsLocation.First().EndLine);
     }
 
     [TestMethod]
@@ -142,7 +142,7 @@ public class AddNodeAsyncTests
         Assert.AreEqual(node1.CxType, node.CxType);
         Assert.AreEqual(node1.Spelling, node.Spelling);
         Assert.AreEqual(node1.NameSpace, node.NameSpace);
-        Assert.IsNull(node.ImplementationLocation);
+        Assert.AreEqual(0, node.ImplementationsLocation.Count);
         Assert.AreEqual(node1.DefineLocation!.FilePath, node.DefineLocation!.FilePath);
         Assert.AreEqual(node1.DefineLocation.StartLine, node.DefineLocation.StartLine);
         Assert.AreEqual(node1.DefineLocation.EndLine, node.DefineLocation.EndLine);

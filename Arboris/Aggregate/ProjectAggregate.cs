@@ -30,11 +30,11 @@ public class ProjectAggregate(ICxxRepository cxxRepository, IProjectRepository p
             if (node.DefineLocation is not null)
                 relativePaths.Add(node.DefineLocation!.FilePath);
 
-            if (node.ImplementationLocation is not null)
-                relativePaths.Add(node.ImplementationLocation!.FilePath);
+            if (node.ImplementationsLocation is not null)
+                relativePaths.AddRange(node.ImplementationsLocation!.Select(item => item.FilePath));
 
             string? description = string.IsNullOrWhiteSpace(node.UserDescription) ? node.LLMDescription : node.UserDescription;
-            return new ProjectReport(node.Id, node.VcProjectName, sb.ToString(), node.Spelling, node.CxType, className, node.NameSpace, description, [.. relativePaths]);
+            return new ProjectReport(node.Id, node.VcProjectName, sb.ToString(), node.Spelling, node.CxType, node.AccessSpecifiers, className, node.NameSpace, description, [.. relativePaths]);
         }).ToArray();
 
         return report;

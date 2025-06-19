@@ -34,9 +34,9 @@ public class ArborisDbContext(DbContextOptions<ArborisDbContext> options) : DbCo
                 .WithOne(c => c.Node)
                 .HasForeignKey<DefineLocation>(c => c.NodeId)
                 .OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(n => n.ImplementationLocation)
+            entity.HasMany(n => n.ImplementationsLocation)
                 .WithOne(c => c.Node)
-                .HasForeignKey<ImplementationLocation>(c => c.NodeId)
+                .HasForeignKey(c => c.NodeId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasMany(n => n.Members)

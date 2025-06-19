@@ -17,7 +17,7 @@ namespace Arboris.EntityFramework.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.0")
+                .HasAnnotation("ProductVersion", "9.0.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -31,18 +31,24 @@ namespace Arboris.EntityFramework.Migrations
                     b.Property<string>("DisplayName")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<long>("EndColumn")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("EndLine")
                         .HasColumnType("bigint");
 
                     b.Property<string>("FilePath")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("NodeId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("SourceCode")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<long>("StartColumn")
+                        .HasColumnType("bigint");
 
                     b.Property<long>("StartLine")
                         .HasColumnType("bigint");
@@ -52,27 +58,27 @@ namespace Arboris.EntityFramework.Migrations
                     b.HasIndex("NodeId")
                         .IsUnique();
 
-                    b.HasIndex("EndLine", "FilePath");
+                    b.HasIndex("EndColumn", "StartLine", "EndLine");
 
-                    b.HasIndex("FilePath", "StartLine");
+                    b.HasIndex("EndColumn", "StartLine", "StartColumn");
 
-                    b.HasIndex("Id", "NodeId");
+                    b.HasIndex("EndLine", "StartColumn", "EndColumn");
 
-                    b.HasIndex("FilePath", "StartLine", "EndLine");
+                    b.HasIndex("NodeId", "EndLine", "StartColumn", "EndColumn");
 
-                    b.HasIndex("Id", "FilePath", "StartLine");
+                    b.HasIndex("NodeId", "Id", "StartLine", "EndLine");
 
-                    b.HasIndex("NodeId", "EndLine", "FilePath");
+                    b.HasIndex("NodeId", "StartLine", "EndLine", "StartColumn");
 
-                    b.HasIndex("NodeId", "FilePath", "StartLine");
+                    b.HasIndex("Id", "StartLine", "EndLine", "StartColumn", "EndColumn");
 
-                    b.HasIndex("NodeId", "Id", "FilePath", "StartLine");
+                    b.HasIndex("StartColumn", "NodeId", "Id", "StartLine", "EndLine");
 
-                    b.HasIndex("NodeId", "StartLine", "EndLine", "FilePath");
+                    b.HasIndex("StartColumn", "StartLine", "EndLine", "EndColumn", "NodeId");
 
-                    b.HasIndex("FilePath", "StartLine", "EndLine", "Id", "NodeId");
+                    b.HasIndex("EndColumn", "NodeId", "Id", "StartLine", "EndLine", "StartColumn");
 
-                    b.HasIndex("StartLine", "EndLine", "FilePath", "Id", "NodeId");
+                    b.HasIndex("StartLine", "EndLine", "StartColumn", "EndColumn", "NodeId", "Id");
 
                     b.ToTable("Cxx_DefineLocations");
                 });
@@ -86,12 +92,15 @@ namespace Arboris.EntityFramework.Migrations
                     b.Property<string>("DisplayName")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<long>("EndColumn")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("EndLine")
                         .HasColumnType("bigint");
 
                     b.Property<string>("FilePath")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("NodeId")
                         .HasColumnType("uniqueidentifier");
@@ -99,31 +108,31 @@ namespace Arboris.EntityFramework.Migrations
                     b.Property<string>("SourceCode")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<long>("StartColumn")
+                        .HasColumnType("bigint");
+
                     b.Property<long>("StartLine")
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("NodeId")
-                        .IsUnique();
+                    b.HasIndex("StartColumn", "StartLine");
 
-                    b.HasIndex("EndLine", "FilePath");
+                    b.HasIndex("Id", "StartLine", "EndLine", "StartColumn");
 
-                    b.HasIndex("FilePath", "StartLine");
+                    b.HasIndex("NodeId", "EndLine", "StartColumn", "EndColumn");
 
-                    b.HasIndex("NodeId", "StartLine");
+                    b.HasIndex("NodeId", "Id", "StartLine", "StartColumn");
 
-                    b.HasIndex("StartLine", "EndLine");
+                    b.HasIndex("StartColumn", "NodeId", "Id", "StartLine");
 
-                    b.HasIndex("FilePath", "StartLine", "EndLine");
+                    b.HasIndex("EndColumn", "NodeId", "Id", "StartLine", "EndLine");
 
-                    b.HasIndex("Id", "NodeId", "FilePath", "StartLine");
+                    b.HasIndex("EndColumn", "StartLine", "EndLine", "StartColumn", "NodeId");
 
-                    b.HasIndex("NodeId", "FilePath", "StartLine", "EndLine");
+                    b.HasIndex("StartLine", "EndLine", "StartColumn", "EndColumn", "NodeId");
 
-                    b.HasIndex("FilePath", "StartLine", "EndLine", "Id", "NodeId");
-
-                    b.HasIndex("Id", "FilePath", "StartLine", "EndLine", "NodeId");
+                    b.HasIndex("EndLine", "StartColumn", "EndColumn", "StartLine", "Id", "NodeId");
 
                     b.ToTable("Cxx_ImplementationLocations");
                 });
@@ -133,6 +142,9 @@ namespace Arboris.EntityFramework.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AccessSpecifiers")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("CursorKindSpelling")
                         .HasColumnType("nvarchar(max)");
@@ -253,8 +265,8 @@ namespace Arboris.EntityFramework.Migrations
             modelBuilder.Entity("Arboris.EntityFramework.EntityFrameworkCore.CXX.ImplementationLocation", b =>
                 {
                     b.HasOne("Arboris.EntityFramework.EntityFrameworkCore.CXX.Node", "Node")
-                        .WithOne("ImplementationLocation")
-                        .HasForeignKey("Arboris.EntityFramework.EntityFrameworkCore.CXX.ImplementationLocation", "NodeId")
+                        .WithMany("ImplementationsLocation")
+                        .HasForeignKey("NodeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -335,7 +347,7 @@ namespace Arboris.EntityFramework.Migrations
 
                     b.Navigation("Dependencies");
 
-                    b.Navigation("ImplementationLocation");
+                    b.Navigation("ImplementationsLocation");
 
                     b.Navigation("Members");
 

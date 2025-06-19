@@ -1,6 +1,6 @@
 ﻿namespace Arboris.Models.Analyze.CXX;
 
-public record AddNode(Guid ProjectId, string VcProjectName, string? CursorKindSpelling, string? Spelling, string? CxType, string? NameSpace, Location? DefineLocation, Location? ImplementationLocation);
+public record AddNode(Guid ProjectId, string VcProjectName, string? CursorKindSpelling, string? Spelling, string? CxType, string? NameSpace, string? AccessSpecifiers, Location? DefineLocation, Location? ImplementationLocation);
 public class Node
 {
     public Guid ProjectId { get; set; }
@@ -10,12 +10,13 @@ public class Node
     public string? Spelling { get; set; }
     public string? CxType { get; set; }
     public string? NameSpace { get; set; }
+    public string? AccessSpecifiers { get; set; }
     public Location? DefineLocation { get; set; }
-    public Location? ImplementationLocation { get; set; }
+    public ICollection<Location> ImplementationsLocation { get; set; }
     public IReadOnlySet<string>? IncludeStrings { get; set; }
 }
 
-public record NodeInfo(Guid Id, string VcProjectName, string? CursorKindSpelling, string? Spelling, string? CxType, string? NameSpace, string? UserDescription, string? LLMDescription);
-public record NodeInfoWithLocation(Guid Id, string VcProjectName, string? CursorKindSpelling, string? Spelling, string? CxType, string? NameSpace, string? UserDescription, string? LLMDescription, IReadOnlySet<string>? IncludeStrings, Location? DefineLocation, Location? ImplementationLocation)
-    : NodeInfo(Id, VcProjectName, CursorKindSpelling, Spelling, CxType, NameSpace, UserDescription, LLMDescription);
-public record NodeWithLocationDto(Guid NodeId, Location? DefineLocation, Location? ImplementationLocation);
+public record NodeInfo(Guid Id, string VcProjectName, string? CursorKindSpelling, string? Spelling, string? CxType, string? AccessSpecifiers, string? NameSpace, string? UserDescription, string? LLMDescription);
+public record NodeInfoWithLocation(Guid Id, string VcProjectName, string? CursorKindSpelling, string? Spelling, string? CxType, string? AccessSpecifiers, string? NameSpace, string? UserDescription, string? LLMDescription, IReadOnlySet<string>? IncludeStrings, Location? DefineLocation, ICollection<Location> ImplementationsLocation)
+    : NodeInfo(Id, VcProjectName, CursorKindSpelling, Spelling, CxType, AccessSpecifiers, NameSpace, UserDescription, LLMDescription);
+public record NodeWithLocationDto(Guid NodeId, Location? DefineLocation, ICollection<Location> ImplementationsLocation);

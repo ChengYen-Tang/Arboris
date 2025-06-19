@@ -13,7 +13,7 @@ public class UpdateNodeLocationAsyncTests
     private readonly Models.Analyze.CXX.Location TestLocation;
 
     public UpdateNodeLocationAsyncTests()
-        => TestLocation = new("TestUpdate.cpp", 100, 200);
+        => TestLocation = new("TestUpdate.cpp", 100, 0, 200, 0);
 
     [TestInitialize]
     public async Task Initialize()
@@ -38,16 +38,16 @@ public class UpdateNodeLocationAsyncTests
         Assert.AreEqual(1, await db.Cxx_Nodes.AsNoTracking().CountAsync());
         Assert.AreEqual(1, await db.Cxx_DefineLocations.AsNoTracking().CountAsync());
         Assert.AreEqual(0, await db.Cxx_ImplementationLocations.AsNoTracking().CountAsync());
-        Models.Analyze.CXX.NodeWithLocationDto dto = new(generateBuilder.Nodes[0].Id, generateBuilder.Nodes[0].DefineLocation, TestLocation);
+        Models.Analyze.CXX.NodeWithLocationDto dto = new(generateBuilder.Nodes[0].Id, generateBuilder.Nodes[0].DefineLocation, [TestLocation]);
         await cxxRepository.UpdateNodeLocationAsync(dto);
         Assert.AreEqual(1, await db.Cxx_Nodes.AsNoTracking().CountAsync());
         Assert.AreEqual(1, await db.Cxx_DefineLocations.AsNoTracking().CountAsync());
         Assert.AreEqual(1, await db.Cxx_ImplementationLocations.AsNoTracking().CountAsync());
 
-        Node node = await db.Cxx_Nodes.AsNoTracking().Include(item => item.DefineLocation).Include(item => item.ImplementationLocation).FirstAsync();
-        Assert.AreEqual(TestLocation.FilePath, node.ImplementationLocation!.FilePath);
-        Assert.AreEqual(TestLocation.StartLine, node.ImplementationLocation.StartLine);
-        Assert.AreEqual(TestLocation.EndLine, node.ImplementationLocation.EndLine);
+        Node node = await db.Cxx_Nodes.AsNoTracking().Include(item => item.DefineLocation).Include(item => item.ImplementationsLocation).FirstAsync();
+        Assert.AreEqual(TestLocation.FilePath, node.ImplementationsLocation.First().FilePath);
+        Assert.AreEqual(TestLocation.StartLine, node.ImplementationsLocation.First().StartLine);
+        Assert.AreEqual(TestLocation.EndLine, node.ImplementationsLocation.First().EndLine);
     }
 
     [TestMethod]
@@ -61,13 +61,13 @@ public class UpdateNodeLocationAsyncTests
         Assert.AreEqual(1, await db.Cxx_Nodes.AsNoTracking().CountAsync());
         Assert.AreEqual(0, await db.Cxx_DefineLocations.AsNoTracking().CountAsync());
         Assert.AreEqual(1, await db.Cxx_ImplementationLocations.AsNoTracking().CountAsync());
-        Models.Analyze.CXX.NodeWithLocationDto dto = new(generateBuilder.Nodes[0].Id, TestLocation, generateBuilder.Nodes[0].ImplementationLocation);
+        Models.Analyze.CXX.NodeWithLocationDto dto = new(generateBuilder.Nodes[0].Id, TestLocation, generateBuilder.Nodes[0].ImplementationsLocation);
         await cxxRepository.UpdateNodeLocationAsync(dto);
         Assert.AreEqual(1, await db.Cxx_Nodes.AsNoTracking().CountAsync());
         Assert.AreEqual(1, await db.Cxx_DefineLocations.AsNoTracking().CountAsync());
         Assert.AreEqual(1, await db.Cxx_ImplementationLocations.AsNoTracking().CountAsync());
 
-        Node node = await db.Cxx_Nodes.AsNoTracking().Include(item => item.DefineLocation).Include(item => item.ImplementationLocation).FirstAsync();
+        Node node = await db.Cxx_Nodes.AsNoTracking().Include(item => item.DefineLocation).Include(item => item.ImplementationsLocation).FirstAsync();
         Assert.AreEqual(TestLocation.FilePath, node.DefineLocation!.FilePath);
         Assert.AreEqual(TestLocation.StartLine, node.DefineLocation.StartLine);
         Assert.AreEqual(TestLocation.EndLine, node.DefineLocation.EndLine);
@@ -80,19 +80,19 @@ public class UpdateNodeLocationAsyncTests
             .GenerateProject1()
             .GenerateRootNode1();
 
-        Node node = await db.Cxx_Nodes.AsNoTracking().Include(item => item.DefineLocation).Include(item => item.ImplementationLocation).FirstAsync();
+        Node node = await db.Cxx_Nodes.AsNoTracking().Include(item => item.DefineLocation).Include(item => item.ImplementationsLocation).FirstAsync();
         Assert.AreEqual(1, await db.Cxx_Nodes.AsNoTracking().CountAsync());
         Assert.AreEqual(1, await db.Cxx_DefineLocations.AsNoTracking().CountAsync());
         Assert.AreEqual(0, await db.Cxx_ImplementationLocations.AsNoTracking().CountAsync());
         Assert.AreEqual(generateBuilder.Locations[0].FilePath, node.DefineLocation!.FilePath);
         Assert.AreEqual(generateBuilder.Locations[0].StartLine, node.DefineLocation.StartLine);
         Assert.AreEqual(generateBuilder.Locations[0].EndLine, node.DefineLocation.EndLine);
-        Models.Analyze.CXX.NodeWithLocationDto dto = new(generateBuilder.Nodes[0].Id, TestLocation, null);
+        Models.Analyze.CXX.NodeWithLocationDto dto = new(generateBuilder.Nodes[0].Id, TestLocation, []);
         await cxxRepository.UpdateNodeLocationAsync(dto);
         Assert.AreEqual(1, await db.Cxx_Nodes.AsNoTracking().CountAsync());
         Assert.AreEqual(1, await db.Cxx_DefineLocations.AsNoTracking().CountAsync());
         Assert.AreEqual(0, await db.Cxx_ImplementationLocations.AsNoTracking().CountAsync());
-        node = await db.Cxx_Nodes.AsNoTracking().Include(item => item.DefineLocation).Include(item => item.ImplementationLocation).FirstAsync();
+        node = await db.Cxx_Nodes.AsNoTracking().Include(item => item.DefineLocation).Include(item => item.ImplementationsLocation).FirstAsync();
         Assert.AreEqual(TestLocation.FilePath, node.DefineLocation!.FilePath);
         Assert.AreEqual(TestLocation.StartLine, node.DefineLocation.StartLine);
         Assert.AreEqual(TestLocation.EndLine, node.DefineLocation.EndLine);
@@ -106,22 +106,22 @@ public class UpdateNodeLocationAsyncTests
             .GenerateProject2()
             .GenerateRootNode2();
 
-        Node node = await db.Cxx_Nodes.AsNoTracking().Include(item => item.DefineLocation).Include(item => item.ImplementationLocation).FirstAsync();
+        Node node = await db.Cxx_Nodes.AsNoTracking().Include(item => item.DefineLocation).Include(item => item.ImplementationsLocation).FirstAsync();
         Assert.AreEqual(1, await db.Cxx_Nodes.AsNoTracking().CountAsync());
         Assert.AreEqual(0, await db.Cxx_DefineLocations.AsNoTracking().CountAsync());
         Assert.AreEqual(1, await db.Cxx_ImplementationLocations.AsNoTracking().CountAsync());
-        Assert.AreEqual(generateBuilder.Locations[0].FilePath, node.ImplementationLocation!.FilePath);
-        Assert.AreEqual(generateBuilder.Locations[0].StartLine, node.ImplementationLocation.StartLine);
-        Assert.AreEqual(generateBuilder.Locations[0].EndLine, node.ImplementationLocation.EndLine);
-        Models.Analyze.CXX.NodeWithLocationDto dto = new(generateBuilder.Nodes[0].Id, null, TestLocation);
+        Assert.AreEqual(generateBuilder.Locations[0].FilePath, node.ImplementationsLocation.First().FilePath);
+        Assert.AreEqual(generateBuilder.Locations[0].StartLine, node.ImplementationsLocation.First().StartLine);
+        Assert.AreEqual(generateBuilder.Locations[0].EndLine, node.ImplementationsLocation.First().EndLine);
+        Models.Analyze.CXX.NodeWithLocationDto dto = new(generateBuilder.Nodes[0].Id, null, [TestLocation]);
         await cxxRepository.UpdateNodeLocationAsync(dto);
         Assert.AreEqual(1, await db.Cxx_Nodes.AsNoTracking().CountAsync());
         Assert.AreEqual(0, await db.Cxx_DefineLocations.AsNoTracking().CountAsync());
         Assert.AreEqual(1, await db.Cxx_ImplementationLocations.AsNoTracking().CountAsync());
-        node = await db.Cxx_Nodes.AsNoTracking().Include(item => item.DefineLocation).Include(item => item.ImplementationLocation).FirstAsync();
-        Assert.AreEqual(TestLocation.FilePath, node.ImplementationLocation!.FilePath);
-        Assert.AreEqual(TestLocation.StartLine, node.ImplementationLocation.StartLine);
-        Assert.AreEqual(TestLocation.EndLine, node.ImplementationLocation.EndLine);
+        node = await db.Cxx_Nodes.AsNoTracking().Include(item => item.DefineLocation).Include(item => item.ImplementationsLocation).FirstAsync();
+        Assert.AreEqual(TestLocation.FilePath, node.ImplementationsLocation.First().FilePath);
+        Assert.AreEqual(TestLocation.StartLine, node.ImplementationsLocation.First().StartLine);
+        Assert.AreEqual(TestLocation.EndLine, node.ImplementationsLocation.First().EndLine);
     }
 
     [TestMethod]
@@ -131,14 +131,14 @@ public class UpdateNodeLocationAsyncTests
             .GenerateProject1()
             .GenerateRootNode1();
 
-        Node node = await db.Cxx_Nodes.AsNoTracking().Include(item => item.DefineLocation).Include(item => item.ImplementationLocation).FirstAsync();
+        Node node = await db.Cxx_Nodes.AsNoTracking().Include(item => item.DefineLocation).Include(item => item.ImplementationsLocation).FirstAsync();
         Assert.AreEqual(1, await db.Cxx_Nodes.AsNoTracking().CountAsync());
         Assert.AreEqual(1, await db.Cxx_DefineLocations.AsNoTracking().CountAsync());
         Assert.AreEqual(0, await db.Cxx_ImplementationLocations.AsNoTracking().CountAsync());
         Assert.AreEqual(generateBuilder.Locations[0].FilePath, node.DefineLocation!.FilePath);
         Assert.AreEqual(generateBuilder.Locations[0].StartLine, node.DefineLocation.StartLine);
         Assert.AreEqual(generateBuilder.Locations[0].EndLine, node.DefineLocation.EndLine);
-        Models.Analyze.CXX.NodeWithLocationDto dto = new(generateBuilder.Nodes[0].Id, null, null);
+        Models.Analyze.CXX.NodeWithLocationDto dto = new(generateBuilder.Nodes[0].Id, null, []);
         await cxxRepository.UpdateNodeLocationAsync(dto);
         Assert.AreEqual(1, await db.Cxx_Nodes.AsNoTracking().CountAsync());
         Assert.AreEqual(0, await db.Cxx_DefineLocations.AsNoTracking().CountAsync());
@@ -153,14 +153,14 @@ public class UpdateNodeLocationAsyncTests
             .GenerateProject2()
             .GenerateRootNode2();
 
-        Node node = await db.Cxx_Nodes.AsNoTracking().Include(item => item.DefineLocation).Include(item => item.ImplementationLocation).FirstAsync();
+        Node node = await db.Cxx_Nodes.AsNoTracking().Include(item => item.DefineLocation).Include(item => item.ImplementationsLocation).FirstAsync();
         Assert.AreEqual(1, await db.Cxx_Nodes.AsNoTracking().CountAsync());
         Assert.AreEqual(0, await db.Cxx_DefineLocations.AsNoTracking().CountAsync());
         Assert.AreEqual(1, await db.Cxx_ImplementationLocations.AsNoTracking().CountAsync());
-        Assert.AreEqual(generateBuilder.Locations[0].FilePath, node.ImplementationLocation!.FilePath);
-        Assert.AreEqual(generateBuilder.Locations[0].StartLine, node.ImplementationLocation.StartLine);
-        Assert.AreEqual(generateBuilder.Locations[0].EndLine, node.ImplementationLocation.EndLine);
-        Models.Analyze.CXX.NodeWithLocationDto dto = new(generateBuilder.Nodes[0].Id, null, null);
+        Assert.AreEqual(generateBuilder.Locations[0].FilePath, node.ImplementationsLocation.First().FilePath);
+        Assert.AreEqual(generateBuilder.Locations[0].StartLine, node.ImplementationsLocation.First().StartLine);
+        Assert.AreEqual(generateBuilder.Locations[0].EndLine, node.ImplementationsLocation.First().EndLine);
+        Models.Analyze.CXX.NodeWithLocationDto dto = new(generateBuilder.Nodes[0].Id, null, []);
         await cxxRepository.UpdateNodeLocationAsync(dto);
         Assert.AreEqual(1, await db.Cxx_Nodes.AsNoTracking().CountAsync());
         Assert.AreEqual(0, await db.Cxx_DefineLocations.AsNoTracking().CountAsync());
@@ -187,12 +187,12 @@ public class UpdateNodeLocationAsyncTests
         Assert.AreEqual(generateBuilder.Nodes[0].DefineLocation!.FilePath, node.Value.DefineLocation!.FilePath);
         Assert.AreEqual(generateBuilder.Nodes[0].DefineLocation!.StartLine, node.Value.DefineLocation!.StartLine);
         Assert.AreEqual(generateBuilder.Nodes[0].DefineLocation!.EndLine, node.Value.DefineLocation!.EndLine);
-        Assert.IsNull(node.Value.ImplementationLocation);
-        Models.Analyze.CXX.NodeWithLocationDto dto = new(generateBuilder.Nodes[0].Id, generateBuilder.Nodes[0].DefineLocation, TestLocation);
+        Assert.AreEqual(0, node.Value.ImplementationsLocation.Count);
+        Models.Analyze.CXX.NodeWithLocationDto dto = new(generateBuilder.Nodes[0].Id, generateBuilder.Nodes[0].DefineLocation, [TestLocation]);
         await cxxRepository.UpdateNodeLocationAsync(dto);
         node = await cxxRepository.GetNodeFromDefineLocationAsync(generateBuilder.Nodes[0].ProjectId, generateBuilder.Nodes[0].VcProjectName, generateBuilder.Nodes[0].DefineLocation!);
-        Assert.AreEqual(TestLocation.FilePath, node.Value.ImplementationLocation!.FilePath);
-        Assert.AreEqual(TestLocation.StartLine, node.Value.ImplementationLocation!.StartLine);
-        Assert.AreEqual(TestLocation.EndLine, node.Value.ImplementationLocation!.EndLine);
+        Assert.AreEqual(TestLocation.FilePath, node.Value.ImplementationsLocation.First().FilePath);
+        Assert.AreEqual(TestLocation.StartLine, node.Value.ImplementationsLocation.First().StartLine);
+        Assert.AreEqual(TestLocation.EndLine, node.Value.ImplementationsLocation.First().EndLine);
     }
 }

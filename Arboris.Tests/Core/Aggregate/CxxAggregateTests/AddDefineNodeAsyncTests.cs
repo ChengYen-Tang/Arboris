@@ -39,14 +39,14 @@ public class AddDefineNodeAsyncTests
         using ArborisDbContext db = await dbFactory.CreateDbContextAsync();
         Assert.AreEqual(1, await db.Cxx_Nodes.CountAsync());
         Assert.AreEqual(1, await db.Cxx_DefineLocations.CountAsync());
-        Node node = await db.Cxx_Nodes.Include(item => item.DefineLocation).Include(item => item.ImplementationLocation).FirstAsync();
+        Node node = await db.Cxx_Nodes.Include(item => item.DefineLocation).Include(item => item.ImplementationsLocation).FirstAsync();
         Assert.AreEqual(addNode.ProjectId, node.ProjectId);
         Assert.AreEqual(addNode.VcProjectName, node.VcProjectName);
         Assert.AreEqual(addNode.CursorKindSpelling, node.CursorKindSpelling);
         Assert.AreEqual(addNode.CxType, node.CxType);
         Assert.AreEqual(addNode.Spelling, node.Spelling);
         Assert.AreEqual(addNode.NameSpace, node.NameSpace);
-        Assert.IsNull(node.ImplementationLocation);
+        Assert.AreEqual(0, node.ImplementationsLocation.Count);
         Assert.AreEqual(addNode.DefineLocation!.FilePath, node.DefineLocation!.FilePath);
         Assert.AreEqual(addNode.DefineLocation.StartLine, node.DefineLocation.StartLine);
         Assert.AreEqual(addNode.DefineLocation.EndLine, node.DefineLocation.EndLine);

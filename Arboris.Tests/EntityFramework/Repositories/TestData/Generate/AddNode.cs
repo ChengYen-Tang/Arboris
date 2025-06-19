@@ -6,61 +6,61 @@ internal static partial class Generator
 {
     public static AddNode GenetateAddNodeWithDefineLocation(Guid projectId)
     {
-        Location location = new("Node1.h", (uint)Random.Shared.Next(), 1)
+        Location location = new("Node1.h", (uint)Random.Shared.Next(), 0, 1, 0)
         {
             DisplayName = "Node1",
             SourceCode = "Type1 Node1;"
         };
-        return new(projectId, "Arboris", "ClassDecl", "Node1", "Type1", "Namespace1", location, null);
+        return new(projectId, "Arboris", "ClassDecl", "Node1", "Type1", "Namespace1", null, location, null);
     }
 
     public static AddNode GenetateAddNodeWithImplementationLocation(Guid projectId)
     {
-        Location location = new("Node2.cpp", (uint)Random.Shared.Next(), 2)
+        Location location = new("Node2.cpp", (uint)Random.Shared.Next(), 0, 2, 0)
         {
             DisplayName = "Node2",
             SourceCode = "Type2 Node2;"
         };
-        return new(projectId, "Arboris", "ClassDecl", "Node2", "Type2", "Namespace2", null, location);
+        return new(projectId, "Arboris", "ClassDecl", "Node2", "Type2", "Namespace2", null, null, location);
     }
 
     public static AddNode GenerateAddNodeWithMemberNode(Guid projectId)
     {
-        Location location = new("MemberNode.h", (uint)Random.Shared.Next(), 3)
+        Location location = new("MemberNode.h", (uint)Random.Shared.Next(), 0, 3, 0)
         {
             DisplayName = "MemberNode",
             SourceCode = "Type3 MemberNode;"
         };
-        return new(projectId, "Arboris", "FunctionDecl", "MemberNode", "Type3", "Namespace3", location, null);
+        return new(projectId, "Arboris", "FunctionDecl", "MemberNode", "Type3", "Namespace3", null, location, null);
     }
 
     public static AddNode GenerateAddNodeWithDependencyNode(Guid projectId)
     {
-        Location location = new("DependencyNode.h", (uint)Random.Shared.Next(), 4)
+        Location location = new("DependencyNode.h", (uint)Random.Shared.Next(), 0, 4, 0)
         {
             DisplayName = "DependencyNode",
             SourceCode = "Type4 DependencyNode;"
         };
-        return new(projectId, "Arboris", "ClassDecl", "DependencyNode", "Type4", "Namespace4", location, null);
+        return new(projectId, "Arboris", "ClassDecl", "DependencyNode", "Type4", "Namespace4", null, location, null);
     }
 
     public static AddNode GenerateAddNodeWithDependencyFunctionDeclNode(Guid projectId)
     {
-        Location location = new("DependencyNode.h", (uint)Random.Shared.Next(), 4)
+        Location location = new("DependencyNode.h", (uint)Random.Shared.Next(), 0, 4, 0)
         {
             DisplayName = "DependencyNode",
             SourceCode = "Type4 DependencyNode;"
         };
-        return new(projectId, "Arboris", "FunctionDecl", "DependencyNode", "Type4", "Namespace4", location, null);
+        return new(projectId, "Arboris", "FunctionDecl", "DependencyNode", "Type4", "Namespace4", null, location, null);
     }
 
     public static AddNode GenerateAddNodeWithTypeNode(Guid projectId)
     {
-        Location location = new("TypeNode.h", (uint)Random.Shared.Next(), 5)
+        Location location = new("TypeNode.h", (uint)Random.Shared.Next(), 0, 5, 0)
         {
             DisplayName = "TypeNode",
             SourceCode = "Type5 TypeNode;"
         };
-        return new(projectId, "Arboris", "FunctionDecl", "TypeNode", "Type5", "Namespace5", location, null);
+        return new(projectId, "Arboris", "FunctionDecl", "TypeNode", "Type5", "Namespace5", null, location, null);
     }
 }

@@ -1,6 +1,7 @@
 ﻿using Arboris.Aggregate;
 using Arboris.Models.Graph.CXX;
 using Arboris.Repositories;
+using Arboris.Service.Models;
 using FluentResults;
 using Microsoft.AspNetCore.Mvc;
 
@@ -35,168 +36,6 @@ public class CxxController(ILogger<CxxController> logger, ICxxRepository cxxRepo
             return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
         return Ok();
-    }
-
-    [HttpGet]
-    [Route("GetGraphForDescription")]
-    [ProducesResponseType(typeof(ForDescriptionNode), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetGraphForDescription(Guid id)
-    {
-        try
-        {
-            Result<ForDescriptionGraph> result = await cxxAggregate.GetGraphForDescription(id);
-            if (result.IsFailed)
-            {
-                Guid errorId = Guid.NewGuid();
-                string message = string.Join(',', result.Errors.Select(item => item.Message));
-                logger.LogWarning("Error Id: {ErrId}, cxxAggregate.GetGraphForDescription({Id}) Failed, Error message: {Message}", errorId, id, message);
-                return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
-            }
-            return Ok(result.Value);
-        }
-        catch (Exception ex)
-        {
-            Guid errorId = Guid.NewGuid();
-            logger.LogError(ex, "Error in cxxAggregate.GetGraphForDescription({Id})", id);
-            return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
-        }
-    }
-
-    [HttpGet]
-    [Route("GetGraphForUnitTest")]
-    [ProducesResponseType(typeof(ForUnitTestGraph), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetGraphForUnitTest(Guid id)
-    {
-        try
-        {
-            Result<ForUnitTestGraph> result = await cxxAggregate.GetGraphForUnitTest(id);
-            if (result.IsFailed)
-            {
-                Guid errorId = Guid.NewGuid();
-                string message = string.Join(',', result.Errors.Select(item => item.Message));
-                logger.LogWarning("Error Id: {ErrId}, cxxAggregate.GetGraphForUnitTest({Id}) Failed, Error message: {Message}", errorId, id, message);
-                return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
-            }
-            return Ok(result.Value);
-        }
-        catch (Exception ex)
-        {
-            Guid errorId = Guid.NewGuid();
-            logger.LogError(ex, "Error in cxxAggregate.GetGraphForUnitTest({Id})", id);
-            return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
-        }
-    }
-
-    [HttpGet]
-    [Route("GetFuncInfoForUtService")]
-    [ProducesResponseType(typeof(ForUtServiceFuncInfo), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetFuncInfoForUtService(Guid id)
-    {
-        try
-        {
-            Result<ForUtServiceFuncInfo> result = await cxxAggregate.GetFuncInfoForUtService(id);
-            if (result.IsFailed)
-            {
-                Guid errorId = Guid.NewGuid();
-                string message = string.Join(',', result.Errors.Select(item => item.Message));
-                logger.LogWarning("Error Id: {ErrId}, cxxAggregate.GetFuncInfoForUtService({Id}) Failed, Error message: {Message}", errorId, id, message);
-                return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
-            }
-            return Ok(result.Value);
-        }
-        catch (Exception ex)
-        {
-            Guid errorId = Guid.NewGuid();
-            logger.LogError(ex, "Error in cxxAggregate.GetFuncInfoForUtService({Id})", id);
-            return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
-        }
-    }
-
-    [HttpGet]
-    [Route("GetForCompile")]
-    [ProducesResponseType(typeof(ForCompileDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetForCompile(Guid id)
-    {
-        try
-        {
-            Result<ForCompileDto> result = await cxxAggregate.GetForCompileDtoAsync(id);
-            if (result.IsFailed)
-            {
-                Guid errorId = Guid.NewGuid();
-                string message = string.Join(',', result.Errors.Select(item => item.Message));
-                logger.LogWarning("Error Id: {ErrId}, cxxAggregate.GetForCompile({Id}) Failed, Error message: {Message}", errorId, id, message);
-                return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
-            }
-            return Ok(result.Value);
-        }
-        catch (Exception ex)
-        {
-            Guid errorId = Guid.NewGuid();
-            logger.LogError(ex, "Error in cxxAggregate.GetForCompile({Id})", id);
-            return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
-        }
-    }
-
-    [HttpGet]
-    [Route("GetForGenerateCode")]
-    [ProducesResponseType(typeof(ForGenerateCodeDto), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetForGenerateCode(Guid id)
-    {
-        try
-        {
-            Result<ForGenerateCodeDto> result = await cxxAggregate.GetForGenerateCodeDtoAsync(id);
-            if (result.IsFailed)
-            {
-                Guid errorId = Guid.NewGuid();
-                string message = string.Join(',', result.Errors.Select(item => item.Message));
-                logger.LogWarning("Error Id: {ErrId}, cxxAggregate.GetForGenerateCode({Id}) Failed, Error message: {Message}", errorId, id, message);
-                return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
-            }
-            return Ok(result.Value);
-        }
-        catch (Exception ex)
-        {
-            Guid errorId = Guid.NewGuid();
-            logger.LogError(ex, "Error in cxxAggregate.GetForGenerateCode({Id})", id);
-            return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
-        }
-    }
-
-    [HttpGet]
-    [Route("GetNodeOtherInfo")]
-    [ProducesResponseType(typeof(NodeOtherInfoWithLocation), StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetNodeOtherInfo(Guid id)
-    {
-        try
-        {
-            Result<NodeOtherInfoWithLocation> result = await cxxAggregate.GetNodeOtherInfoAsync(id);
-            if (result.IsFailed)
-            {
-                Guid errorId = Guid.NewGuid();
-                string message = string.Join(',', result.Errors.Select(item => item.Message));
-                logger.LogWarning("Error Id: {ErrId}, cxxAggregate.GetNodeOtherInfoAsync({Id}) Failed, Error message: {Message}", errorId, id, message);
-                return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
-            }
-            return Ok(result.Value);
-        }
-        catch (Exception ex)
-        {
-            Guid errorId = Guid.NewGuid();
-            logger.LogError(ex, "Error in cxxAggregate.GetNodeOtherInfoAsync({Id})", id);
-            return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
-        }
     }
 
     [HttpGet]
@@ -251,5 +90,42 @@ public class CxxController(ILogger<CxxController> logger, ICxxRepository cxxRepo
             logger.LogError(ex, "Error in cxxRepository.GetAllNodeAsync({Id})", projectId);
             return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
+    }
+
+    [HttpGet]
+    [Route("GetNodeAndLineStringFromFile")]
+    [ProducesResponseType(typeof(GetNodeAndLineStringFromFileResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> GetNodeAndLineStringFromFile(Guid projectId, string filePath, int line)
+    {
+        try
+        {
+            Result<NodeLines> result = await cxxRepository.GetNodeAndLineRangeFromFile(projectId, filePath, line);
+            if (result.IsFailed)
+            {
+                Guid errorId = Guid.NewGuid();
+                string message = string.Join(',', result.Errors.Select(item => item.Message));
+                logger.LogWarning("Error Id: {ErrId}, cxxRepository.GetNodeAndLineRangeFromFile({projectId}, {filePath}, {line})", projectId, filePath, line, message);
+                return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
+            }
+
+            string fileContent = GetLineContent(result.Value.Code!, (int)result.Value.StartLine, line);
+
+            return Ok(new GetNodeAndLineStringFromFileResponse(result.Value.Id, fileContent));
+        }
+        catch (Exception ex)
+        {
+            Guid errorId = Guid.NewGuid();
+            logger.LogError(ex, "Error in cxxRepository.GetNodeAndLineRangeFromFile({projectId}, {filePath}, {line})", projectId, filePath, line);
+            return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
+        }
+    }
+
+    private static string GetLineContent(string text, int startLine, int targetLine)
+    {
+        string[] lines = text.Split(["\r\n", "\n"], StringSplitOptions.None);
+        int index = targetLine - startLine; // 0-base 的 offset
+        return lines[index];
     }
 }
