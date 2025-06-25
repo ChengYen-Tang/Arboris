@@ -29,6 +29,11 @@ public class GarbageCollection(
 
         string[] projects = (await projectRepository.GetProjectsAsync()).AsParallel().Select(item => item.Id.ToString()).ToArray();
         // Get all folder from ProjectController.CacheDirectory
+        if (!Directory.Exists(ProjectController.CacheDirectory))
+        {
+            logger.LogWarning("Cache directory does not exist: {CacheDirectory}", ProjectController.CacheDirectory);
+            return;
+        }
         IEnumerable<string> needDeleteFolder = Directory.GetDirectories(ProjectController.CacheDirectory).AsParallel().Where(item => !projects.Contains(Path.GetDirectoryName(item)));
         foreach (string folder in needDeleteFolder)
         {

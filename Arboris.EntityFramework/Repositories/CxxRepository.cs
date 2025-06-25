@@ -580,7 +580,7 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         return project.CxxNodes!.AsParallel().Select(item => new GetAllNodeDto(item.Id, item.CursorKindSpelling, item.CursorKindSpelling == "ClassDecl" || item.CursorKindSpelling == "FunctionDecl", item.VcProjectName)).ToArray();
     }
 
-    public async Task<Result<NodeLines>> GetNodeAndLineRangeFromFile(Guid projectId, string filePath, int line)
+    public async Task<Result<NodeLines>> GetNodeAndLineStringFromFile(Guid projectId, string filePath, int line)
     {
         filePath = filePath.Replace("\\", "/");
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();

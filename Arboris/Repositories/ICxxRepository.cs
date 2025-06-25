@@ -154,5 +154,5 @@ public interface ICxxRepository
     /// <returns></returns>
     Task<Result> UpdateUserDescriptionAsync(Guid projectId, string vcProjectName, string? nameSpace, string? className, string? spelling, string? cxType, string? description);
 
-    Task<Result<NodeLines>> GetNodeAndLineRangeFromFile(Guid projectId, string filePath, int line);
+    Task<Result<NodeLines>> GetNodeAndLineStringFromFile(Guid projectId, string filePath, int line);
 }

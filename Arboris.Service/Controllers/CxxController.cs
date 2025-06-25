@@ -101,23 +101,23 @@ public class CxxController(ILogger<CxxController> logger, ICxxRepository cxxRepo
     {
         try
         {
-            Result<NodeLines> result = await cxxRepository.GetNodeAndLineRangeFromFile(projectId, filePath, line);
+            Result<NodeLines> result = await cxxRepository.GetNodeAndLineStringFromFile(projectId, filePath, line);
             if (result.IsFailed)
             {
                 Guid errorId = Guid.NewGuid();
                 string message = string.Join(',', result.Errors.Select(item => item.Message));
-                logger.LogWarning("Error Id: {ErrId}, cxxRepository.GetNodeAndLineRangeFromFile({projectId}, {filePath}, {line})", projectId, filePath, line, message);
+                logger.LogWarning("Error Id: {ErrId}, cxxRepository.GetNodeAndLineStringFromFile({projectId}, {filePath}, {line})", projectId, filePath, line, message);
                 return StatusCode(StatusCodes.Status404NotFound, $"Error Id: {errorId}, Message: {message}");
             }
 
             string fileContent = GetLineContent(result.Value.Code!, (int)result.Value.StartLine, line);
 
-            return Ok(new GetNodeAndLineStringFromFileResponse(result.Value.Id, fileContent));
+            return Ok(new GetNodeAndLineStringFromFileResponse(result.Value.Id, fileContent, result.Value.Code!));
         }
         catch (Exception ex)
         {
             Guid errorId = Guid.NewGuid();
-            logger.LogError(ex, "Error in cxxRepository.GetNodeAndLineRangeFromFile({projectId}, {filePath}, {line})", projectId, filePath, line);
+            logger.LogError(ex, "Error in cxxRepository.GetNodeAndLineStringFromFile({projectId}, {filePath}, {line})", projectId, filePath, line);
             return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
         }
     }
