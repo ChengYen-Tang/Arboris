@@ -30,7 +30,7 @@ builder.Services.AddSerilog((services, lc) => lc
 
 // Add services to the container.
 builder.Services.AddPooledDbContextFactory<ArborisDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), sqlserverOptions => { sqlserverOptions.CommandTimeout(7200); }));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), sqlserverOptions => { sqlserverOptions.CommandTimeout(7200); sqlserverOptions.EnableRetryOnFailure(); }));
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<ICxxRepository, CxxRepository>();
 builder.Services.AddScoped<ProjectAggregate>();

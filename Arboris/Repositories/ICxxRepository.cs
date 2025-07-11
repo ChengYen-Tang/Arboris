@@ -11,7 +11,7 @@ public interface ICxxRepository
     /// </summary>
     /// <param name="addNode"> addNode dto </param>
     /// <returns> node id </returns>
-    Task<Guid> AddNodeAsync(AddNode addNode, IReadOnlySet<string>? includeStrings = null);
+    Task<Guid> AddNodeAsync(AddNode addNode);
 
     /// <summary>
     /// Check if the node + define location exists in the database
@@ -69,7 +69,7 @@ public interface ICxxRepository
     /// <returns></returns>
     Task<Result<Node>> GetNodeAsync(Guid nodeId);
 
-    Task<Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, IReadOnlySet<string>? IncludeStrings, Guid? ClassNodeId)>> GetNodeInfoWithClassIdAsync(Guid nodeId);
+    Task<Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId)>> GetNodeInfoWithClassIdAsync(Guid nodeId);
 
     Task<Result<NodeSourceCode[]>> GetNodeSourceCodeAsync(Guid nodeId);
 

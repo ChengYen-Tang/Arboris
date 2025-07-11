@@ -3,6 +3,7 @@
 namespace Arboris.EntityFramework.EntityFrameworkCore.CXX;
 
 [PrimaryKey(nameof(NodeId), nameof(MemberId))]
+[Index(nameof(MemberId))]
 public class NodeMember
 {
     public Guid NodeId { get; set; }
@@ -13,6 +14,7 @@ public class NodeMember
 }
 
 [PrimaryKey(nameof(NodeId), nameof(TypeId))]
+[Index(nameof(TypeId))]
 public class NodeType
 {
     public Guid NodeId { get; set; }
@@ -23,6 +25,7 @@ public class NodeType
 }
 
 [PrimaryKey(nameof(NodeId), nameof(FromId))]
+[Index(nameof(FromId))]
 public class NodeDependency
 {
     public Guid NodeId { get; set; }

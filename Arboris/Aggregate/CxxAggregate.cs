@@ -106,13 +106,13 @@ public class CxxAggregate(ICxxRepository nodeRepository)
 
     public async Task<Result<NodeInfoWithDependency>> GetNodeInfoWithDependencyAsync(Guid nodeId)
     {
-        Task<Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, IReadOnlySet<string>? IncludeStrings, Guid? ClassNodeId)>> GetNodeInfoWithClassIdAsyncTask = nodeRepository.GetNodeInfoWithClassIdAsync(nodeId);
+        Task<Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId)>> GetNodeInfoWithClassIdAsyncTask = nodeRepository.GetNodeInfoWithClassIdAsync(nodeId);
         Task<Result<NodeSourceCode[]>> GetNodeSourceCodeAsyncTask = nodeRepository.GetNodeSourceCodeAsync(nodeId);
         Task<Result<Guid[]>> GetNodeDependenciesIdAsyncTask = nodeRepository.GetNodeDependenciesIdAsync(nodeId);
 
         await Task.WhenAll(GetNodeInfoWithClassIdAsyncTask, GetNodeSourceCodeAsyncTask, GetNodeDependenciesIdAsyncTask);
 
-        Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, IReadOnlySet<string>? IncludeStrings, Guid? ClassNodeId)> GetNodeInfoWithClassIdResult = GetNodeInfoWithClassIdAsyncTask.Result;
+        Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId)> GetNodeInfoWithClassIdResult = GetNodeInfoWithClassIdAsyncTask.Result;
         Result<NodeSourceCode[]> GetNodeSourceCodeResult = GetNodeSourceCodeAsyncTask.Result;
         Result<Guid[]> GetNodeDependenciesIdResult = GetNodeDependenciesIdAsyncTask.Result;
 
@@ -123,7 +123,7 @@ public class CxxAggregate(ICxxRepository nodeRepository)
         if (GetNodeDependenciesIdResult.IsFailed)
             return GetNodeDependenciesIdResult.ToResult();
 
-        return new NodeInfoWithDependency(GetNodeSourceCodeResult.Value, GetNodeInfoWithClassIdResult.Value.NameSpace, GetNodeInfoWithClassIdResult.Value.Spelling, GetNodeInfoWithClassIdResult.Value.AccessSpecifiers, GetNodeInfoWithClassIdResult.Value.IncludeStrings, GetNodeInfoWithClassIdResult.Value.ClassNodeId, GetNodeDependenciesIdResult.Value);
+        return new NodeInfoWithDependency(GetNodeSourceCodeResult.Value, GetNodeInfoWithClassIdResult.Value.NameSpace, GetNodeInfoWithClassIdResult.Value.Spelling, GetNodeInfoWithClassIdResult.Value.AccessSpecifiers, GetNodeInfoWithClassIdResult.Value.ClassNodeId, GetNodeDependenciesIdResult.Value);
     }
 
     /// <summary>
@@ -140,7 +140,7 @@ public class CxxAggregate(ICxxRepository nodeRepository)
     public Task<Result> UpdateUserDescriptionAsync(Guid projectId, string vcProjectName, string? nameSpace, string? className, string? spelling, string? cxType, string? description)
         => nodeRepository.UpdateUserDescriptionAsync(projectId, vcProjectName, nameSpace, className, spelling, cxType, description);
 
-    public async Task<Result<Guid?>> InsertorUpdateImplementationLocationAsync(AddNode addNode, IReadOnlySet<string>? includeStrings, CancellationToken ct = default)
+    public async Task<Result<Guid?>> InsertorUpdateImplementationLocationAsync(AddNode addNode, CancellationToken ct = default)
     {
         if (ct.IsCancellationRequested)
             return Result.Fail("Trigger CancellationRequested");
@@ -153,7 +153,6 @@ public class CxxAggregate(ICxxRepository nodeRepository)
                 Result UpdateResulr = await nodeRepository.UpdateNodeLocationAsync(new(node.Value.Id, node.Value.DefineLocation, node.Value.ImplementationsLocation));
                 if (UpdateResulr.IsFailed)
                     return UpdateResulr;
-                node.Value.IncludeStrings = includeStrings;
                 UpdateResulr = await nodeRepository.UpdateNodeAsync(node.Value);
                 if (UpdateResulr.IsFailed)
                     return UpdateResulr;
@@ -168,7 +167,7 @@ public class CxxAggregate(ICxxRepository nodeRepository)
         bool isExists = await nodeRepository.CheckImplementationNodeExistsAsync(addNode);
         if (isExists)
             return Result.Ok();
-        Guid? nodeId = await nodeRepository.AddNodeAsync(addNode, includeStrings);
+        Guid? nodeId = await nodeRepository.AddNodeAsync(addNode);
         return Result.Ok(nodeId);
     }
 }

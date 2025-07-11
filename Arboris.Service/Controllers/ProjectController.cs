@@ -155,21 +155,29 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
         #endregion
 
         #region Clang analysis
-        ClangCore clang = null!;
+        ClangCore?[] clangCores = [.. projectConfig.ProjectInfos.Select(projectInfo => clangFactory.Create(id, projectDirectory, projectInfo))];
         try
         {
-            foreach (ProjectInfo projectInfo in projectConfig.ProjectInfos)
+            await Parallel.ForAsync(0, clangCores.Length, async (i, ct) =>
             {
-                #region IsCancellationRequested
-                if (ct.IsCancellationRequested)
-                    break;
-                #endregion
+                ClangCore? clang = clangCores[i];
+                if (clang is not null)
+                    await clang.ScanNode(ct);
+            });
 
-                clang = clangFactory.Create(id, projectDirectory, projectInfo);
-                await clang.Scan(ct);
-                clang.Dispose();
-                clang = null!;
-            }
+            await Parallel.ForAsync(0, clangCores.Length, async (i, ct) =>
+            {
+                ClangCore? clang = clangCores[i];
+                if (clang is not null)
+                    await clang.ScanLink(ct);
+            });
+
+            await Parallel.ForAsync(0, clangCores.Length, async (i, ct) =>
+            {
+                ClangCore? clang = clangCores[i];
+                if (clang is not null)
+                    await clang.RemoveTypeDeclarations(ct);
+            });
         }
         catch (Exception ex)
         {
@@ -180,7 +188,12 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
         }
         finally
         {
-            clang?.Dispose();
+            for (int i = 0; i < clangCores.Length; i++)
+            {
+                ClangCore? clang = clangCores[i];
+                clang?.Dispose();
+                clangCores[i] = null;
+            }
             GC.Collect();
         }
         #endregion

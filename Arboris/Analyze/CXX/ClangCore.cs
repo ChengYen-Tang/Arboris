@@ -14,15 +14,17 @@ public class ClangCore : IDisposable
 {
     private readonly ILogger logger;
     private readonly CxxAggregate cxxAggregate;
-    private readonly Dictionary<string, byte> IsFilesScaned;
+    private readonly Dictionary<string, bool> isFilesScaned;
     private readonly Guid projectId;
     private readonly Index index;
     private readonly List<TranslationUnit> translationUnits;
     private readonly ProjectInfo projectConfig;
     private readonly string solutionPath;
-    private readonly string[] clangArgs;
+    private readonly string[] clangBaseArgs;
     private readonly Uri projectUri;
     private bool disposedValue;
+    private readonly string[] clCompiles;
+    private readonly string[] clIncludes;
 
     public ClangCore(Guid projectId, string solutionPath, CxxAggregate cxxAggregate, ILogger<ClangCore> logger, ProjectInfo projectConfig)
     {
@@ -34,42 +36,28 @@ public class ClangCore : IDisposable
         this.logger = logger;
         translationUnits = [];
         index = Index.Create(false, false);
-        List<string> args = ["-std=c++14", "-xc++"];
-        args.AddRange(projectConfig.AdditionalIncludeDirectories.Select(item => $"-I{Path.Combine(solutionPath, item)}"));
-        args.Add($"-I{Path.Combine(solutionPath, projectConfig.SourcePath)}");
-        clangArgs = [.. args];
-        IsFilesScaned = projectConfig.SourceCodePath.Select(item => item.Replace('\\', '/')).ToDictionary(item => item, _ => default(byte));
+        clangBaseArgs = ["-std=c++14", "-xc++",
+            $"-I{Path.Combine(solutionPath, projectConfig.ProjectRelativePath)}", .. projectConfig.AdditionalIncludeDirectories.Select(item => $"-I{Path.Combine(solutionPath, item)}"),
+            .. projectConfig.PreprocessorDefinitions.Select(item => { var parts = item.Split(['='], 2); string value = parts.Length > 1 ? parts[1].Trim() : string.Empty; return $"-D{parts[0]}={value}"; }).ToHashSet(StringComparer.Ordinal)];
+        clCompiles = [.. projectConfig.ClCompiles.Select(item => item.Replace('\\', '/'))];
+        clIncludes = [.. projectConfig.ClIncludes.Select(item => item.Replace('\\', '/'))];
+        string[] sourceCodes = [.. clCompiles, .. clIncludes];
+        isFilesScaned = sourceCodes.ToDictionary(item => item, _ => false);
     }
 
-    public async Task Scan(CancellationToken ct = default)
+    public Task ScanNode(CancellationToken ct = default)
     {
-        IReadOnlyList<string> codeFiles = [.. IsFilesScaned.Keys];
-
-        if (ct.IsCancellationRequested)
-        {
-            logger.LogWarning("Trigger CancellationRequested");
-            return;
-        }
-        ScanNode scanNode = new(logger, cxxAggregate, projectId, index, projectConfig, solutionPath, clangArgs, PrintErrorMessage, GetRelativePath, IsFilesScaned, translationUnits);
-        await scanNode.Scan(codeFiles, ct);
-
-        if (ct.IsCancellationRequested)
-        {
-            logger.LogWarning("Trigger CancellationRequested");
-            return;
-        }
-        ScanLink scanLink = new(logger, cxxAggregate, projectId, index, projectConfig, solutionPath, clangArgs, PrintErrorMessage, GetRelativePath, translationUnits);
-        await scanLink.Scan(codeFiles, ct);
-
-        if (ct.IsCancellationRequested)
-        {
-            logger.LogWarning("Trigger CancellationRequested");
-            return;
-        }
-        await RemoveTypeDeclarations(ct);
+        ScanNode scanNode = new(logger, cxxAggregate, projectId, index, projectConfig, solutionPath, new(isFilesScaned), clangBaseArgs, translationUnits, PrintErrorMessage, GetRelativePath);
+        return Scan(scanNode, "ScanNode", ct);
     }
 
-    private async Task RemoveTypeDeclarations(CancellationToken ct = default)
+    public Task ScanLink(CancellationToken ct = default)
+    {
+        ScanLink scanLink = new(logger, cxxAggregate, projectId, index, projectConfig, solutionPath, new(isFilesScaned), clangBaseArgs, translationUnits, PrintErrorMessage, GetRelativePath);
+        return Scan(scanLink, "ScanLink", ct);
+    }
+
+    public async Task RemoveTypeDeclarations(CancellationToken ct = default)
     {
         if (ct.IsCancellationRequested)
         {
@@ -110,6 +98,39 @@ public class ClangCore : IDisposable
             logger.LogWarning("RemoveTypeDeclarations failed-> ProjectId: {ProjectId}, ProjectName: {ProjectName}, Error Message: {Message}", projectId, projectConfig.ProjectName, result.Errors[0]);
     }
 
+    private async Task Scan(ScanAbstract scanAbstract, string taskName, CancellationToken ct = default)
+    {
+        if (ct.IsCancellationRequested)
+        {
+            logger.LogWarning("Trigger CancellationRequested");
+            return;
+        }
+
+        foreach (string codeFile in clCompiles)
+        {
+            if (ct.IsCancellationRequested)
+            {
+                logger.LogWarning("Trigger CancellationRequested");
+                return;
+            }
+
+            logger.LogDebug("{TaskName} -> CodeFile: {CodeFile}", taskName, codeFile);
+            await scanAbstract.ScanFile(codeFile, ct);
+        }
+
+        foreach (string codeFile in clIncludes)
+        {
+            if (ct.IsCancellationRequested)
+            {
+                logger.LogWarning("Trigger CancellationRequested");
+                return;
+            }
+
+            logger.LogDebug("{TaskName} -> CodeFile: {CodeFile}", taskName, codeFile);
+            await scanAbstract.ScanFile(codeFile, ct);
+        }
+    }
+
     private string GetRelativePath(string path)
     {
         if (string.IsNullOrWhiteSpace(path))
@@ -141,6 +162,17 @@ public class ClangCore : IDisposable
 
             disposedValue = true;
         }
+    }
+
+    public static string GetSourceCode(string filePath, int startLine, int endLine)
+    {
+        // 注意：startLine, endLine 皆為 1-based
+        return string.Join(
+            Environment.NewLine,
+            File.ReadLines(filePath)
+                .Skip(startLine - 1)
+                .Take(endLine - startLine + 1)
+        );
     }
 
     ~ClangCore()

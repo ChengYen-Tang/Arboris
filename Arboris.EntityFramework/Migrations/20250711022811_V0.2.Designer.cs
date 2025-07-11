@@ -4,6 +4,7 @@ using Arboris.EntityFramework.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Arboris.EntityFramework.Migrations
 {
     [DbContext(typeof(ArborisDbContext))]
-    partial class ArborisDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250711022811_V0.2")]
+    partial class V02
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -58,7 +61,8 @@ namespace Arboris.EntityFramework.Migrations
                     b.HasIndex("NodeId")
                         .IsUnique();
 
-                    b.HasIndex("FilePath", "StartLine", "StartColumn", "EndLine", "EndColumn");
+                    b.HasIndex("FilePath", "StartLine", "StartColumn", "EndLine", "EndColumn")
+                        .IsUnique();
 
                     b.HasIndex("NodeId", "FilePath", "StartLine", "StartColumn", "EndLine", "EndColumn");
 
@@ -119,6 +123,9 @@ namespace Arboris.EntityFramework.Migrations
 
                     b.Property<string>("CxType")
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("IncludeStringsJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("LLMDescription")
                         .HasColumnType("nvarchar(max)");

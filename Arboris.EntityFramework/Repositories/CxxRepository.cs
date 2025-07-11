@@ -11,7 +11,7 @@ namespace Arboris.EntityFramework.Repositories;
 public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory) : ICxxRepository
 {
     /// <inheritdoc />
-    public async Task<Guid> AddNodeAsync(Models.Analyze.CXX.AddNode addNode, IReadOnlySet<string>? includeStrings = null)
+    public async Task<Guid> AddNodeAsync(Models.Analyze.CXX.AddNode addNode)
     {
         DefineLocation? defineLocation = null;
         ImplementationLocation[]? implementationLocation = null;
@@ -49,7 +49,6 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             NameSpace = addNode.NameSpace,
             DefineLocation = defineLocation,
             ImplementationsLocation = implementationLocation,
-            IncludeStrings = includeStrings,
             AccessSpecifiers = addNode.AccessSpecifiers
         };
 
@@ -135,7 +134,6 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             NameSpace = defineLocation.Node.NameSpace,
             DefineLocation = domainDefineLocation,
             ImplementationsLocation = domainImplementationLocation,
-            IncludeStrings = defineLocation.Node.IncludeStrings
         };
 
         return node;
@@ -180,7 +178,7 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
                 SourceCode = item1.SourceCode,
                 DisplayName = item1.DisplayName
             })];
-            return new Models.Analyze.CXX.NodeInfoWithLocation(item.Id, item.VcProjectName, item.CursorKindSpelling, item.Spelling, item.CxType, item.AccessSpecifiers, item.NameSpace, item.UserDescription, item.LLMDescription, item.IncludeStrings, defineLocation, implementationLocation);
+            return new Models.Analyze.CXX.NodeInfoWithLocation(item.Id, item.VcProjectName, item.CursorKindSpelling, item.Spelling, item.CxType, item.AccessSpecifiers, item.NameSpace, item.UserDescription, item.LLMDescription, defineLocation, implementationLocation);
         }).ToArray();
     }
 
@@ -225,7 +223,6 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             NameSpace = node.NameSpace,
             DefineLocation = defineLocation,
             ImplementationsLocation = implementationLocation,
-            IncludeStrings = node.IncludeStrings,
             AccessSpecifiers = node.AccessSpecifiers
         };
     }
@@ -485,7 +482,6 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         dbNode.Spelling = node.Spelling;
         dbNode.CxType = node.CxType;
         dbNode.NameSpace = node.NameSpace;
-        dbNode.IncludeStrings = node.IncludeStrings;
         dbContext.Cxx_Nodes.Update(dbNode);
         await dbContext.SaveChangesAsync();
         return Result.Ok();
@@ -534,21 +530,21 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         return result.AsParallel().SelectMany(item => item).Distinct().ToArray();
     }
 
-    public async Task<Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, IReadOnlySet<string>? IncludeStrings, Guid? ClassNodeId)>> GetNodeInfoWithClassIdAsync(Guid nodeId)
+    public async Task<Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId)>> GetNodeInfoWithClassIdAsync(Guid nodeId)
     {
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
         Node? node = await dbContext.Cxx_Nodes
             .FindAsync(nodeId);
 
         if (node is null)
-            return Result.Fail<(string? NameSpace, string? Spelling, string? AccessSpecifiers, IReadOnlySet<string>? IncludeStrings, Guid? ClassNodeId)>("Node not found");
+            return Result.Fail<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId)>("Node not found");
 
         Guid classNodeId = await dbContext.Cxx_NodeMembers
             .Where(item => item.MemberId == nodeId)
             .Select(item => item.NodeId)
             .FirstOrDefaultAsync();
 
-        return (node.NameSpace, node.Spelling, node.AccessSpecifiers, node.IncludeStrings, classNodeId == Guid.Empty ? null : classNodeId);
+        return (node.NameSpace, node.Spelling, node.AccessSpecifiers, classNodeId == Guid.Empty ? null : classNodeId);
     }
 
     public async Task<Result<NodeSourceCode[]>> GetNodeSourceCodeAsync(Guid nodeId)

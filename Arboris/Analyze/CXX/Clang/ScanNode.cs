@@ -10,20 +10,13 @@ using Index = ClangSharp.Index;
 
 namespace Arboris.Analyze.CXX.Clang;
 
-internal class ScanNode(ILogger logger, CxxAggregate cxxAggregate, Guid projectId, Index index, ProjectInfo projectConfig, string solutionPath, string[] clangArgs, Action<Result> printErrorMessage, Func<string, string> getRelativePath, Dictionary<string, byte> isFilesScaned, List<TranslationUnit> translationUnits)
+internal class ScanNode(ILogger logger,
+    CxxAggregate cxxAggregate, Guid projectId, Index index,
+    ProjectInfo projectConfig, string solutionPath, Dictionary<string, bool> isFilesScaned,
+    string[] clangBaseArgs, List<TranslationUnit> translationUnits,
+    Action<Result> printErrorMessage, Func<string, string> getRelativePath)
+    : ScanAbstract(logger, isFilesScaned, getRelativePath)
 {
-    private readonly ILogger logger = logger;
-    private readonly CxxAggregate cxxAggregate = cxxAggregate;
-    private readonly Dictionary<string, byte> IsFilesScaned = isFilesScaned;
-    private readonly Guid projectId = projectId;
-    private readonly Index index = index;
-    private readonly List<TranslationUnit> translationUnits = translationUnits;
-    private readonly ProjectInfo projectConfig = projectConfig;
-    private readonly string solutionPath = solutionPath;
-    private readonly string[] clangArgs = clangArgs;
-
-    private readonly Action<Result> PrintErrorMessage = printErrorMessage;
-    private readonly Func<string, string> GetRelativePath = getRelativePath;
     private static readonly CXCursorKind[] validCursorKind = [
         CXCursorKind.CXCursor_ClassDecl,
         CXCursorKind.CXCursor_CXXMethod,
@@ -41,33 +34,17 @@ internal class ScanNode(ILogger logger, CxxAggregate cxxAggregate, Guid projectI
         CXCursorKind.CXCursor_FriendDecl,
         CXCursorKind.CXCursor_CompoundStmt];
 
-    public async Task Scan(IReadOnlyList<string> codeFiles, CancellationToken ct = default)
-    {
-        foreach (string headerFile in codeFiles)
-        {
-            if (ct.IsCancellationRequested)
-                break;
-            await Scan(headerFile, ct);
-        }
-    }
-
     /// <summary>
     /// Explore the source code file using the Clang library
     /// </summary>
     /// <param name="codeFile"> Source code file </param>
     /// <returns></returns>
-    private async Task Scan(string codeFile, CancellationToken ct = default)
+    protected override async Task Scan(string codeFile, CancellationToken ct = default)
     {
         if (ct.IsCancellationRequested)
             return;
-        if (!IsFilesScaned.TryGetValue(codeFile, out byte value) || value == 1 || value == 2)
-            return;
-
-        IsFilesScaned[codeFile] = 1;
-        logger.LogDebug("ScanNode-> CodeFile: {CodeFile}", codeFile);
-        CXTranslationUnit translationUnit = CXTranslationUnit.CreateFromSourceFile(index.Handle, Path.Combine(solutionPath, codeFile), clangArgs, []);
+        CXTranslationUnit translationUnit = CXTranslationUnit.CreateFromSourceFile(index.Handle, Path.Combine(solutionPath, codeFile), clangBaseArgs, []);
         using TranslationUnit tu = TranslationUnit.GetOrCreate(translationUnit);
-        HashSet<string> includeStrings = [];
         if (tu is null)
         {
             if (translationUnit != null)
@@ -81,10 +58,9 @@ internal class ScanNode(ILogger logger, CxxAggregate cxxAggregate, Guid projectI
         {
             if (ct.IsCancellationRequested)
                 break;
-            await ExploreAstNode(cursor, includeStrings, ct: ct);
+            await ExploreAstNode(cursor, ct: ct);
         }
         translationUnits.Remove(tu);
-        IsFilesScaned[codeFile] = 2;
     }
 
     /// <summary>
@@ -93,11 +69,11 @@ internal class ScanNode(ILogger logger, CxxAggregate cxxAggregate, Guid projectI
     /// <param name="cursor"> Ast node </param>
     /// <param name="nameSpace"> C++ code namespace </param>
     /// <returns> accessSpecifiers </returns>
-    private async Task<string?> ExploreAstNode(Cursor cursor, HashSet<string> includeStrings, string? nameSpace = null, string? accessSpecifiers = null, CancellationToken ct = default)
+    private async Task<string?> ExploreAstNode(Cursor cursor, string? nameSpace = null, string? accessSpecifiers = null, CancellationToken ct = default)
     {
         if (ct.IsCancellationRequested)
             return null;
-        if (!cursor.Location.IsFromMainFile || inValidCursorKind.Contains(cursor.CursorKind))
+        if (!CheckIsProjectFileAndNotScanned(cursor.Location) || inValidCursorKind.Contains(cursor.CursorKind))
             return null;
 
         if (cursor.CursorKind == CXCursorKind.CXCursor_CXXAccessSpecifier)
@@ -118,18 +94,13 @@ internal class ScanNode(ILogger logger, CxxAggregate cxxAggregate, Guid projectI
         // Absolute path
         Location fullLocation = new(fullFileName, startLine, startColumn, endLine, endColumn);
         // Relative path
-        Location location = new(GetRelativePath(fullFileName), startLine, startColumn, endLine, endColumn);
+        Location location = new(getRelativePath(fullFileName), startLine, startColumn, endLine, endColumn);
         logger.LogDebug("Location-> StartLine: {StartLine}, EndLine: {EndLine}, StartColumn: {StartColumn}, EndColumn: {EndColumn}, FileName: {FileName}", startLine, endLine, startColumn, endColumn, location.FilePath);
 
-        if (cursor.CursorKind == CXCursorKind.CXCursor_InclusionDirective)
-        {
-            string? includeString = File.ReadLines(fullLocation.FilePath).Skip((int)startLine - 1).FirstOrDefault();
-            includeStrings.Add(includeString!);
-        }
-        else if (validCursorKind.Contains(cursor.CursorKind))
+        if (validCursorKind.Contains(cursor.CursorKind))
         {
             using CXString cXType = cursor.Handle.Type.Spelling;
-            location.SourceCode = string.Join(Environment.NewLine, File.ReadLines(fullLocation.FilePath).Skip((int)startLine - 1).Take((int)endLine - (int)startLine + 1));
+            location.SourceCode = ClangCore.GetSourceCode(fullLocation.FilePath, (int)startLine, (int)endLine);
             location.DisplayName = GetDisplayName(cursor, fullLocation).TrimStart().TrimEnd(' ', '{', '\n', '\r', '\t');
 
             if (cursor is Decl decl)
@@ -137,7 +108,7 @@ internal class ScanNode(ILogger logger, CxxAggregate cxxAggregate, Guid projectI
                 decl.CanonicalDecl.Extent.Start.GetExpansionLocation(out CXFile defineFIle, out uint defineStartLine, out uint defineStartColumn, out uint _);
                 decl.CanonicalDecl.Extent.End.GetExpansionLocation(out CXFile _, out uint defineEndLine, out uint defineEndColumn, out uint _);
                 using CXString defineFileName = defineFIle.Name;
-                Location defineLocation = new(GetRelativePath(defineFileName.ToString()), defineStartLine, defineStartColumn, defineEndLine, defineEndColumn);
+                Location defineLocation = new(getRelativePath(defineFileName.ToString()), defineStartLine, defineStartColumn, defineEndLine, defineEndColumn);
                 logger.LogDebug("DefineLocation-> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", defineStartLine, defineEndLine, defineFileName);
                 if (defineLocation == location && !cursor.CursorChildren.Any(item => item.CursorKind == CXCursorKind.CXCursor_CompoundStmt))
                 {
@@ -146,17 +117,17 @@ internal class ScanNode(ILogger logger, CxxAggregate cxxAggregate, Guid projectI
                 }
                 else
                 {
-                    await Scan(defineLocation.FilePath, ct);
+                    //await ScanFile(defineLocation.FilePath, macros, ct);
                     AddNode addNode = new(projectId, projectConfig.ProjectName, cursor.CursorKindSpelling, cursor.Spelling, cXType.ToString(), nameSpace, accessSpecifiers, defineLocation == location ? null : defineLocation, location);
-                    Result result = await InsertorUpdateImplementationNode(addNode, includeStrings, decl, ct);
-                    PrintErrorMessage(result);
+                    Result result = await InsertorUpdateImplementationNode(addNode, decl, ct);
+                    printErrorMessage(result);
                 }
             }
             else
             {
                 AddNode addNode = new(projectId, projectConfig.ProjectName, cursor.CursorKindSpelling, cursor.Spelling, cXType.ToString(), nameSpace, accessSpecifiers, null, location);
-                Result result = await InsertorUpdateImplementationNode(addNode, includeStrings, null, ct);
-                PrintErrorMessage(result);
+                Result result = await InsertorUpdateImplementationNode(addNode, null, ct);
+                printErrorMessage(result);
             }
         }
 
@@ -175,7 +146,7 @@ internal class ScanNode(ILogger logger, CxxAggregate cxxAggregate, Guid projectI
             if (ct.IsCancellationRequested)
                 break;
 
-            string? accessSpecifiersTag = await ExploreAstNode(child, includeStrings, nameSpace, accessSpecifiers, ct);
+            string? accessSpecifiersTag = await ExploreAstNode(child, nameSpace, accessSpecifiers, ct);
             if (accessSpecifiersTag is not null)
                 accessSpecifiers = accessSpecifiersTag;
         }
@@ -194,9 +165,9 @@ internal class ScanNode(ILogger logger, CxxAggregate cxxAggregate, Guid projectI
         await LinkMember(nodeId, decl);
     }
 
-    private async Task<Result> InsertorUpdateImplementationNode(AddNode addNode, IReadOnlySet<string>? includeStrings, Decl? decl, CancellationToken ct = default)
+    private async Task<Result> InsertorUpdateImplementationNode(AddNode addNode, Decl? decl, CancellationToken ct = default)
     {
-        Result<Guid?> result = await cxxAggregate.InsertorUpdateImplementationLocationAsync(addNode, includeStrings, ct);
+        Result<Guid?> result = await cxxAggregate.InsertorUpdateImplementationLocationAsync(addNode, ct);
         if (result.IsFailed)
             return result.ToResult();
         if (decl is null || result.Value is null)
@@ -229,7 +200,7 @@ internal class ScanNode(ILogger logger, CxxAggregate cxxAggregate, Guid projectI
 
     private async Task LinkMember(Guid nodeId, CXString fileName, uint startLine, uint startColumn, uint endLine, uint endColumn)
     {
-        Location classLocation = new(GetRelativePath(fileName.ToString()), startLine, startColumn, endLine, endColumn);
+        Location classLocation = new(getRelativePath(fileName.ToString()), startLine, startColumn, endLine, endColumn);
         Result result = await cxxAggregate.LinkMemberAsync(projectId, projectConfig.ProjectName, classLocation, nodeId);
         Debug.Assert(result.IsSuccess, "ClassLocation not found");
     }

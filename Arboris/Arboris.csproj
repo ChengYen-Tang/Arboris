@@ -9,12 +9,12 @@
 
   <ItemGroup>
     <PackageReference Include="ClangSharp" Version="20.1.2.1" />
-    <PackageReference Include="FluentResults" Version="3.16.0" />
+    <PackageReference Include="FluentResults" Version="4.0.0" />
     <PackageReference Include="libclang" Version="20.1.2" />
     <PackageReference Include="libClangSharp" Version="20.1.2" />
-    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.6" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.6" />
-    <PackageReference Include="Microsoft.TemplateEngine.Utils" Version="9.0.301" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.7" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.7" />
+    <PackageReference Include="Microsoft.TemplateEngine.Utils" Version="9.0.302" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Newtonsoft.Json.Bson" Version="1.0.3" />
   </ItemGroup>

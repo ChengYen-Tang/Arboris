@@ -13,10 +13,9 @@ public class Node
     public string? AccessSpecifiers { get; set; }
     public Location? DefineLocation { get; set; }
     public ICollection<Location> ImplementationsLocation { get; set; }
-    public IReadOnlySet<string>? IncludeStrings { get; set; }
 }
 
 public record NodeInfo(Guid Id, string VcProjectName, string? CursorKindSpelling, string? Spelling, string? CxType, string? AccessSpecifiers, string? NameSpace, string? UserDescription, string? LLMDescription);
-public record NodeInfoWithLocation(Guid Id, string VcProjectName, string? CursorKindSpelling, string? Spelling, string? CxType, string? AccessSpecifiers, string? NameSpace, string? UserDescription, string? LLMDescription, IReadOnlySet<string>? IncludeStrings, Location? DefineLocation, ICollection<Location> ImplementationsLocation)
+public record NodeInfoWithLocation(Guid Id, string VcProjectName, string? CursorKindSpelling, string? Spelling, string? CxType, string? AccessSpecifiers, string? NameSpace, string? UserDescription, string? LLMDescription, Location? DefineLocation, ICollection<Location> ImplementationsLocation)
     : NodeInfo(Id, VcProjectName, CursorKindSpelling, Spelling, CxType, AccessSpecifiers, NameSpace, UserDescription, LLMDescription);
 public record NodeWithLocationDto(Guid NodeId, Location? DefineLocation, ICollection<Location> ImplementationsLocation);
