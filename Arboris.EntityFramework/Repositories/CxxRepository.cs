@@ -320,13 +320,13 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
     {
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
         Guid[] haveMembers = await dbContext.Cxx_Nodes.Include(item => item.Members)
-            .Where(item => item.ProjectId == projectId && item.CursorKindSpelling == "ClassDecl" || item.CursorKindSpelling == "StructDecl")
+            .Where(item => item.ProjectId == projectId && (item.CursorKindSpelling == "ClassDecl" || item.CursorKindSpelling == "StructDecl"))
             .Where(item => item.VcProjectName == nodeInfo.VcProjectName && item.Spelling == nodeInfo.Spelling && item.CxType == nodeInfo.CxType && item.NameSpace == nodeInfo.NameSpace)
             .Where(item => item.Members.Count > 0)
             .Select(item => item.Id)
             .ToArrayAsync();
         Guid[] noMembers = await dbContext.Cxx_Nodes.Include(item => item.Members)
-            .Where(item => item.ProjectId == projectId && item.CursorKindSpelling == "ClassDecl" || item.CursorKindSpelling == "StructDecl")
+            .Where(item => item.ProjectId == projectId && (item.CursorKindSpelling == "ClassDecl" || item.CursorKindSpelling == "StructDecl"))
             .Where(item => item.VcProjectName == nodeInfo.VcProjectName && item.Spelling == nodeInfo.Spelling && item.CxType == nodeInfo.CxType && item.NameSpace == nodeInfo.NameSpace)
             .Where(item => item.Members.Count == 0)
             .Select(item => item.Id)
@@ -355,21 +355,23 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
     public async Task<Result> RemoveTypeDeclarations(Guid projectId, string vcProjectName)
     {
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
-        Guid[] nodesId = await dbContext.Cxx_Nodes.Where(item => item.ProjectId == projectId && item.VcProjectName == vcProjectName && item.CursorKindSpelling == "ClassDecl" || item.CursorKindSpelling == "StructDecl")
-            .Select(item => item.Id)
-            .ToArrayAsync();
+        Node[] nodes = await dbContext.Cxx_Nodes.Where(item => item.ProjectId == projectId && item.VcProjectName == vcProjectName && (item.CursorKindSpelling == "ClassDecl" || item.CursorKindSpelling == "StructDecl")).ToArrayAsync();
 
-        List<Guid> removeId = [.. nodesId];
-        foreach (Guid nodeId in nodesId)
+        List<Guid> removeIds = [.. nodes.Select(n => n.Id)];
+        foreach (Node node in nodes)
         {
-            if (await dbContext.Cxx_NodeMembers.AnyAsync(item => item.NodeId == nodeId || item.MemberId == nodeId))
-                removeId.Remove(nodeId);
-            else if (await dbContext.Cxx_NodeDependencies.AnyAsync(item => item.FromId == nodeId || item.NodeId == nodeId))
-                removeId.Remove(nodeId);
-            else if (await dbContext.Cxx_NodeTypes.AnyAsync(item => item.TypeId == nodeId || item.NodeId == nodeId))
-                removeId.Remove(nodeId);
+            bool hasMember = await dbContext.Cxx_NodeMembers
+                .AnyAsync(m => m.NodeId == node.Id || m.MemberId == node.Id);
+            bool hasDep = await dbContext.Cxx_NodeDependencies
+                .AnyAsync(d => d.FromId == node.Id || d.NodeId == node.Id);
+            bool hasType = await dbContext.Cxx_NodeTypes
+                .AnyAsync(t => t.TypeId == node.Id || t.NodeId == node.Id);
+
+            if (hasMember || hasDep || hasType)
+                removeIds.Remove(node.Id);
         }
-        dbContext.Cxx_Nodes.RemoveRange(removeId.Select(id => new Node { Id = id }));
+        Node[] toRemove = nodes.Where(n => removeIds.Contains(n.Id)).ToArray();
+        dbContext.Cxx_Nodes.RemoveRange(toRemove);
         await dbContext.SaveChangesAsync();
         return Result.Ok();
     }
