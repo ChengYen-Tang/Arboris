@@ -97,7 +97,7 @@ internal class ScanLink(ILogger logger,
             if (!VerifyLocation(location) || !VerifyFromNodeOutOfSelfNode(compoundStmtLocation, location))
                 return;
             logger.LogDebug("    CXCursor_TypeRef -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, fileName);
-            Result result = await cxxAggregate.LinkDependencyAsync(projectId, projectConfig.ProjectName, compoundStmtLocation, location);
+            Result result = await cxxAggregate.LinkDependencyAsync(projectId, compoundStmtLocation, location);
             printErrorMessage(result);
         }
         else if (cursor.CursorKind == CXCursorKind.CXCursor_CallExpr)
@@ -119,13 +119,13 @@ internal class ScanLink(ILogger logger,
             if (cursor.Spelling == "operator=" && cursor is CXXOperatorCallExpr)
             {
                 logger.LogDebug("    CXCursor_CallExpr -> operator= -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, location.FilePath);
-                Result result = await cxxAggregate.LinkDependencyCallExprOperatorEqualAsync(projectId, projectConfig.ProjectName, compoundStmtLocation, location);
+                Result result = await cxxAggregate.LinkDependencyCallExprOperatorEqualAsync(projectId, compoundStmtLocation, location);
                 printErrorMessage(result);
             }
             else
             {
                 logger.LogDebug("    CXCursor_CallExpr -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, location.FilePath);
-                Result result = await cxxAggregate.LinkDependencyAsync(projectId, projectConfig.ProjectName, compoundStmtLocation, location);
+                Result result = await cxxAggregate.LinkDependencyAsync(projectId, compoundStmtLocation, location);
                 printErrorMessage(result);
             }
         }
@@ -146,7 +146,7 @@ internal class ScanLink(ILogger logger,
                 return;
 
             logger.LogDebug("    CXCursor_MemberRefExpr -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, location.FilePath);
-            Result result = await cxxAggregate.LinkDependencyAsync(projectId, projectConfig.ProjectName, compoundStmtLocation, location);
+            Result result = await cxxAggregate.LinkDependencyAsync(projectId, compoundStmtLocation, location);
             printErrorMessage(result);
         }
         else if (cursor.CursorKind == CXCursorKind.CXCursor_OverloadedDeclRef)
@@ -167,7 +167,7 @@ internal class ScanLink(ILogger logger,
                     return;
 
                 logger.LogDebug("    CXCursor_OverloadedDeclRef -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, location.FilePath);
-                Result result = await cxxAggregate.LinkDependencyAsync(projectId, projectConfig.ProjectName, compoundStmtLocation, location);
+                Result result = await cxxAggregate.LinkDependencyAsync(projectId, compoundStmtLocation, location);
                 printErrorMessage(result);
             }
         }
@@ -187,7 +187,7 @@ internal class ScanLink(ILogger logger,
                 return;
 
             logger.LogDebug("    CXCursor_DeclRefExpr -> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", startLine, endLine, location.FilePath);
-            Result result = await cxxAggregate.LinkDependencyAsync(projectId, projectConfig.ProjectName, compoundStmtLocation, location);
+            Result result = await cxxAggregate.LinkDependencyAsync(projectId, compoundStmtLocation, location);
             printErrorMessage(result);
         }
     }
@@ -239,7 +239,7 @@ internal class ScanLink(ILogger logger,
             using CXString fileName = file.Name;
             Location location = new(getRelativePath(fileName.ToString()), startLine, startColumn, endLine, endColumn);
             if (VerifyLocation(location))
-                await cxxAggregate.LinkTypeAsync(projectId, projectConfig.ProjectName, defineLocation, location);
+                await cxxAggregate.LinkTypeAsync(projectId, defineLocation, location);
         }
 
         foreach (var child in cursor.CursorChildren)

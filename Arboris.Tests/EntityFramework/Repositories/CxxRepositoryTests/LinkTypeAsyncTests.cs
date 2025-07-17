@@ -29,7 +29,7 @@ public class LinkTypeAsyncTests
     {
         generateBuilder.GenerateProject1().GenerateRootNode1().GenerateTypeNode();
 
-        await cxxRepository.LinkTypeAsync(generateBuilder.Projects[0].Id, "Arboris", generateBuilder.Locations[0], generateBuilder.Locations[1]);
+        await cxxRepository.LinkTypeAsync(generateBuilder.Projects[0].Id, generateBuilder.Locations[0], generateBuilder.Locations[1]);
 
         using ArborisDbContext db = await dbFactory.CreateDbContextAsync();
         Assert.AreEqual(2, await db.Cxx_Nodes.CountAsync());
@@ -46,8 +46,8 @@ public class LinkTypeAsyncTests
             .GenerateRootNode1().GenerateRootNode2()
             .GenerateTypeNode().GenerateTypeNode2();
 
-        await cxxRepository.LinkTypeAsync(generateBuilder.Projects[0].Id, "Arboris", generateBuilder.Locations[0], generateBuilder.Locations[2]);
-        await cxxRepository.LinkTypeAsync(generateBuilder.Projects[0].Id, "Arboris", generateBuilder.Locations[0], generateBuilder.Locations[3]);
+        await cxxRepository.LinkTypeAsync(generateBuilder.Projects[0].Id, generateBuilder.Locations[0], generateBuilder.Locations[2]);
+        await cxxRepository.LinkTypeAsync(generateBuilder.Projects[0].Id, generateBuilder.Locations[0], generateBuilder.Locations[3]);
 
         using ArborisDbContext db = await dbFactory.CreateDbContextAsync();
         Assert.AreEqual(4, await db.Cxx_Nodes.CountAsync());

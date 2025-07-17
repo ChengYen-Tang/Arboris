@@ -139,6 +139,43 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         return node;
     }
 
+    /// <inheritdoc />
+    public async Task<Result<Models.Analyze.CXX.Node>> GetNodeFromDefineLocationAsync(Guid projectId, Models.Analyze.CXX.Location location)
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        DefineLocation? defineLocation = await dbContext.Cxx_DefineLocations
+            .Include(item => item.Node)
+            .ThenInclude(item => item!.ImplementationsLocation)
+            .FirstOrDefaultAsync(item => item.Node!.ProjectId == projectId && item.FilePath == location.FilePath && item.StartLine == location.StartLine && item.EndLine == location.EndLine && item.StartColumn == location.StartColumn && item.EndColumn == location.EndColumn);
+
+        if (defineLocation is null)
+            return Result.Fail<Models.Analyze.CXX.Node>($"Location not found. Start line: {location.StartLine}, End Line: {location.EndLine}, File: {location.FilePath}");
+        if (defineLocation.Node is null)
+            throw new InvalidOperationException("DefineLocation.Node is null");
+
+        Models.Analyze.CXX.Location domainDefineLocation = new(defineLocation.FilePath, defineLocation.StartLine, defineLocation.StartColumn, defineLocation.EndLine, defineLocation.EndColumn) { SourceCode = defineLocation.SourceCode, DisplayName = defineLocation.DisplayName };
+        ICollection<Models.Analyze.CXX.Location> domainImplementationLocation = [.. defineLocation.Node.ImplementationsLocation.AsParallel().Select(item => new Models.Analyze.CXX.Location(item.FilePath, item.StartLine, item.StartColumn, item.EndLine, item.EndColumn)
+        {
+            SourceCode = item.SourceCode,
+            DisplayName = item.DisplayName
+        })];
+        Models.Analyze.CXX.Node node = new()
+        {
+            ProjectId = defineLocation.Node.ProjectId,
+            VcProjectName = defineLocation.Node.VcProjectName,
+            Id = defineLocation.Node.Id,
+            CursorKindSpelling = defineLocation.Node.CursorKindSpelling,
+            Spelling = defineLocation.Node.Spelling,
+            CxType = defineLocation.Node.CxType,
+            AccessSpecifiers = defineLocation.Node.AccessSpecifiers,
+            NameSpace = defineLocation.Node.NameSpace,
+            DefineLocation = domainDefineLocation,
+            ImplementationsLocation = domainImplementationLocation
+        };
+
+        return node;
+    }
+
     private async Task<Result<Guid>> GetNodeIdFromLocationAsync(Guid projectId, string vcProjectName, Models.Analyze.CXX.Location location)
     {
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
@@ -157,6 +194,26 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             return Result.Fail("Node location not found");
         return NodeId;
     }
+
+    private async Task<Result<Guid>> GetNodeIdFromLocationAsync(Guid projectId, Models.Analyze.CXX.Location location)
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        Guid NodeId = await dbContext.Cxx_DefineLocations
+            .Include(item => item.Node)
+            .Where(item => item.Node!.ProjectId == projectId && item.FilePath == location.FilePath && item.StartLine == location.StartLine && item.EndLine == location.EndLine && item.StartColumn == location.StartColumn && item.EndColumn == location.EndColumn)
+            .Select(item => item.NodeId)
+            .FirstOrDefaultAsync();
+        if (NodeId == Guid.Empty)
+            NodeId = await dbContext.Cxx_ImplementationLocations
+                .Include(item => item.Node)
+                .Where(item => item.Node!.ProjectId == projectId && item.FilePath == location.FilePath && item.StartLine == location.StartLine && item.EndLine == location.EndLine && item.StartColumn == location.StartColumn && item.EndColumn == location.EndColumn)
+                .Select(item => item.NodeId)
+                .FirstOrDefaultAsync();
+        if (NodeId == Guid.Empty)
+            return Result.Fail("Node location not found");
+        return NodeId;
+    }
+
 
     /// <inheritdoc />
     public async Task<Models.Analyze.CXX.NodeInfoWithLocation[]> GetNodesFromProjectAsync(Guid projectId)
@@ -228,14 +285,14 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
     }
 
     /// <inheritdoc />
-    public async Task<Result> LinkDependencyAsync(Guid projectId, string vcProjectName, Models.Analyze.CXX.Location nodeLocation, Models.Analyze.CXX.Location fromLocation)
+    public async Task<Result> LinkDependencyAsync(Guid projectId, Models.Analyze.CXX.Location nodeLocation, Models.Analyze.CXX.Location fromLocation)
     {
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
-        Result<Guid> NodeId = await GetNodeIdFromLocationAsync(projectId, vcProjectName, nodeLocation);
+        Result<Guid> NodeId = await GetNodeIdFromLocationAsync(projectId, nodeLocation);
         if (NodeId.IsFailed)
             return Result.Fail($"Node location not found. Start line: {nodeLocation.StartLine}, End Line: {nodeLocation.EndLine}, File: {nodeLocation.FilePath}");
 
-        Result<Guid> FromId = await GetNodeIdFromLocationAsync(projectId, vcProjectName, fromLocation);
+        Result<Guid> FromId = await GetNodeIdFromLocationAsync(projectId, fromLocation);
         if (FromId.IsFailed)
             return Result.Fail($"From location not found. Start line: {fromLocation.StartLine}, End Line: {fromLocation.EndLine}, File: {fromLocation.FilePath}");
 
@@ -248,22 +305,22 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
     }
 
     /// <inheritdoc />
-    public async Task<Result> LinkDependencyCallExprOperatorEqualAsync(Guid projectId, string vcProjectName, Models.Analyze.CXX.Location nodeLocation, Models.Analyze.CXX.Location fromLocation)
+    public async Task<Result> LinkDependencyCallExprOperatorEqualAsync(Guid projectId, Models.Analyze.CXX.Location nodeLocation, Models.Analyze.CXX.Location fromLocation)
     {
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
-        Result<Guid> NodeId = await GetNodeIdFromLocationAsync(projectId, vcProjectName, nodeLocation);
+        Result<Guid> NodeId = await GetNodeIdFromLocationAsync(projectId, nodeLocation);
         if (NodeId.IsFailed)
             return Result.Fail($"Node location not found. Start line: {nodeLocation.StartLine}, End Line: {nodeLocation.EndLine}, File: {nodeLocation.FilePath}");
 
         Guid FromId = await dbContext.Cxx_DefineLocations
         .Include(item => item.Node)
-        .Where(item => item.Node!.ProjectId == projectId && item.Node!.VcProjectName == vcProjectName && item.FilePath == fromLocation.FilePath && item.StartLine == fromLocation.StartLine && item.StartColumn == fromLocation.StartColumn && item.EndLine == fromLocation.EndLine && item.EndColumn == fromLocation.EndColumn && (item.Node!.CursorKindSpelling == "ClassDecl" || item.Node!.CursorKindSpelling == "StructDecl"))
+        .Where(item => item.Node!.ProjectId == projectId && item.FilePath == fromLocation.FilePath && item.StartLine == fromLocation.StartLine && item.StartColumn == fromLocation.StartColumn && item.EndLine == fromLocation.EndLine && item.EndColumn == fromLocation.EndColumn && (item.Node!.CursorKindSpelling == "ClassDecl" || item.Node!.CursorKindSpelling == "StructDecl"))
         .Select(item => item.NodeId)
         .FirstOrDefaultAsync();
         if (FromId == Guid.Empty)
             FromId = await dbContext.Cxx_ImplementationLocations
             .Include(item => item.Node)
-                .Where(item => item.Node!.ProjectId == projectId && item.Node!.VcProjectName == vcProjectName && item.FilePath == fromLocation.FilePath && item.StartLine == fromLocation.StartLine && item.StartColumn == fromLocation.StartColumn && item.EndLine == fromLocation.EndLine && item.EndColumn == fromLocation.EndColumn && (item.Node!.CursorKindSpelling == "ClassDecl" || item.Node!.CursorKindSpelling == "StructDecl"))
+                .Where(item => item.Node!.ProjectId == projectId && item.FilePath == fromLocation.FilePath && item.StartLine == fromLocation.StartLine && item.StartColumn == fromLocation.StartColumn && item.EndLine == fromLocation.EndLine && item.EndColumn == fromLocation.EndColumn && (item.Node!.CursorKindSpelling == "ClassDecl" || item.Node!.CursorKindSpelling == "StructDecl"))
                 .Select(item => item.NodeId)
                 .FirstOrDefaultAsync();
         if (FromId == Guid.Empty)
@@ -292,14 +349,14 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
     }
 
     /// <inheritdoc />
-    public async Task<Result> LinkTypeAsync(Guid projectId, string vcProjectName, Models.Analyze.CXX.Location nodeLocation, Models.Analyze.CXX.Location typeLocation)
+    public async Task<Result> LinkTypeAsync(Guid projectId, Models.Analyze.CXX.Location nodeLocation, Models.Analyze.CXX.Location typeLocation)
     {
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
-        Result<Guid> NodeId = await GetNodeIdFromLocationAsync(projectId, vcProjectName, nodeLocation);
+        Result<Guid> NodeId = await GetNodeIdFromLocationAsync(projectId, nodeLocation);
         if (NodeId.IsFailed)
             return Result.Fail($"Node location not found. Start line: {nodeLocation.StartLine}, End Line: {nodeLocation.EndLine}, File: {nodeLocation.FilePath}");
 
-        Result<Guid> TypeId = await GetNodeIdFromLocationAsync(projectId, vcProjectName, typeLocation);
+        Result<Guid> TypeId = await GetNodeIdFromLocationAsync(projectId, typeLocation);
         if (TypeId.IsFailed)
             return Result.Fail($"Type location not found. Start line: {typeLocation.StartLine}, End Line: {typeLocation.EndLine}, File: {typeLocation.FilePath}");
 

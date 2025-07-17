@@ -47,6 +47,13 @@ public interface ICxxRepository
     /// <param name="location"> Define location </param>
     /// <returns></returns>
     Task<Result<Node>> GetNodeFromDefineLocationAsync(Guid projectId, string vcProjectName, Location location);
+    /// <summary>
+    /// Get node from define location
+    /// </summary>
+    /// <param name="projectId"> Project id </param>
+    /// <param name="location"> Define location </param>
+    /// <returns></returns>
+    Task<Result<Node>> GetNodeFromDefineLocationAsync(Guid projectId, Location location);
 
     /// <summary>
     /// Get all nodes from a project
@@ -87,32 +94,29 @@ public interface ICxxRepository
     /// Link a dependency to a class, struct, function, method, field, etc.
     /// </summary>
     /// <param name="projectId"> Project id </param>
-    /// <param name="vcProjectName"> Visual studio project name </param>
     /// <param name="nodeLocation"> Source node location </param>
     /// <param name="fromLocation"> Uesd node location </param>
     /// <returns></returns>
-    Task<Result> LinkDependencyAsync(Guid projectId, string vcProjectName, Location nodeLocation, Location fromLocation);
+    Task<Result> LinkDependencyAsync(Guid projectId, Location nodeLocation, Location fromLocation);
 
     /// <summary>
     /// Link a dependency to a class, struct
     /// Because clang returns features of operator= under certain conditions that do not meet our requirements.
     /// </summary>
     /// <param name="projectId"> Project id </param>
-    /// <param name="vcProjectName"> Visual studio project name </param>
     /// <param name="nodeLocation"> Source node location </param>
     /// <param name="fromLocation"> Uesd node location </param>
     /// <returns></returns>
-    Task<Result> LinkDependencyCallExprOperatorEqualAsync(Guid projectId, string vcProjectName, Location nodeLocation, Location fromLocation);
+    Task<Result> LinkDependencyCallExprOperatorEqualAsync(Guid projectId, Location nodeLocation, Location fromLocation);
 
     /// <summary>
     /// Link a type to a class, struct, function, method, field, etc.
     /// </summary>
     /// <param name="projectId"> Project id </param>
-    /// <param name="vcProjectName"> Visual studio project name </param>
     /// <param name="nodeLocation"> Source node location </param>
     /// <param name="typeLocation"> Type node location </param>
     /// <returns></returns>
-    Task<Result> LinkTypeAsync(Guid projectId, string vcProjectName, Location nodeLocation, Location typeLocation);
+    Task<Result> LinkTypeAsync(Guid projectId, Location nodeLocation, Location typeLocation);
 
     Task<Result> MoveTypeDeclarationLinkAsync(Guid projectId, NodeInfo nodeInfo);
 

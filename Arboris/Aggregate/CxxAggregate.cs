@@ -42,8 +42,8 @@ public class CxxAggregate(ICxxRepository nodeRepository)
     /// <param name="nodeLocation"> Source node location </param>
     /// <param name="fromLocation"> Uesd node location </param>
     /// <returns></returns>
-    public Task<Result> LinkDependencyAsync(Guid projectId, string vcProjectName, Location nodeLocation, Location fromLocation)
-        => nodeRepository.LinkDependencyAsync(projectId, vcProjectName, nodeLocation, fromLocation);
+    public Task<Result> LinkDependencyAsync(Guid projectId, Location nodeLocation, Location fromLocation)
+        => nodeRepository.LinkDependencyAsync(projectId, nodeLocation, fromLocation);
 
     /// <summary>
     /// Find node dependency and link to the node
@@ -54,8 +54,8 @@ public class CxxAggregate(ICxxRepository nodeRepository)
     /// <param name="nodeLocation"> Source node location </param>
     /// <param name="fromLocation"> Uesd node location </param>
     /// <returns></returns>
-    public Task<Result> LinkDependencyCallExprOperatorEqualAsync(Guid projectId, string vcProjectName, Location nodeLocation, Location fromLocation)
-        => nodeRepository.LinkDependencyCallExprOperatorEqualAsync(projectId, vcProjectName, nodeLocation, fromLocation);
+    public Task<Result> LinkDependencyCallExprOperatorEqualAsync(Guid projectId, Location nodeLocation, Location fromLocation)
+        => nodeRepository.LinkDependencyCallExprOperatorEqualAsync(projectId, nodeLocation, fromLocation);
 
     /// <summary>
     /// Find node type and link to the node
@@ -65,13 +65,13 @@ public class CxxAggregate(ICxxRepository nodeRepository)
     /// <param name="nodeLocation"> Source node location </param>
     /// <param name="typeLocation"> Type node location </param>
     /// <returns></returns>
-    public async Task<Result> LinkTypeAsync(Guid projectId, string vcProjectName, Location nodeLocation, Location typeLocation)
+    public async Task<Result> LinkTypeAsync(Guid projectId, Location nodeLocation, Location typeLocation)
     {
-        Result<Node> nodeResult = await nodeRepository.GetNodeFromDefineLocationAsync(projectId, vcProjectName, nodeLocation);
+        Result<Node> nodeResult = await nodeRepository.GetNodeFromDefineLocationAsync(projectId, nodeLocation);
         if (nodeResult.IsFailed)
             return nodeResult.ToResult();
 
-        return await nodeRepository.LinkTypeAsync(projectId, vcProjectName, nodeLocation, typeLocation);
+        return await nodeRepository.LinkTypeAsync(projectId, nodeLocation, typeLocation);
     }
 
     /// <summary>
