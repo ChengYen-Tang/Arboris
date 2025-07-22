@@ -26,11 +26,11 @@ public class OtherTests
             .GenerateMemberNode()
             .GenerateTypeNode().GenerateTypeNode2();
 
-        await cxxRepository.LinkDependencyAsync(generateBuilder.Projects[0].Id, generateBuilder.Locations[0], generateBuilder.Locations[2]);
-        await cxxRepository.LinkDependencyAsync(generateBuilder.Projects[0].Id, generateBuilder.Locations[0], generateBuilder.Locations[3]);
+        await cxxRepository.LinkDependencyAsync(generateBuilder.Projects[0].Id, "Arboris", generateBuilder.Locations[0], generateBuilder.Locations[2]);
+        await cxxRepository.LinkDependencyAsync(generateBuilder.Projects[0].Id, "Arboris", generateBuilder.Locations[0], generateBuilder.Locations[3]);
         await cxxRepository.LinkMemberAsync(generateBuilder.Projects[0].Id, "Arboris", generateBuilder.Locations[0], generateBuilder.Nodes[4].Id);
-        await cxxRepository.LinkTypeAsync(generateBuilder.Projects[0].Id, generateBuilder.Locations[0], generateBuilder.Locations[5]);
-        await cxxRepository.LinkTypeAsync(generateBuilder.Projects[0].Id, generateBuilder.Locations[0], generateBuilder.Locations[6]);
+        await cxxRepository.LinkTypeAsync(generateBuilder.Projects[0].Id, "Arboris", generateBuilder.Locations[0], generateBuilder.Locations[5]);
+        await cxxRepository.LinkTypeAsync(generateBuilder.Projects[0].Id, "Arboris", generateBuilder.Locations[0], generateBuilder.Locations[6]);
 
         await cxxAggregate.UpdateLLMDescriptionAsync(generateBuilder.Nodes[0].Id, "RootNode1");
         await cxxAggregate.UpdateLLMDescriptionAsync(generateBuilder.Nodes[1].Id, "RootNode2");
