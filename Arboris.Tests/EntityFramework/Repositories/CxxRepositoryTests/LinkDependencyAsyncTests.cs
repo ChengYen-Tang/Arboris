@@ -32,7 +32,7 @@ public class LinkDependencyAsyncTests
             .GenerateRootNode1()
             .GenerateDependencyNode();
 
-        await cxxRepository.LinkDependencyAsync(generateBuilder.Projects[0].Id, generateBuilder.Locations[0], generateBuilder.Locations[1]);
+        await cxxRepository.LinkDependencyAsync(generateBuilder.Projects[0].Id, "Arboris", generateBuilder.Locations[0], generateBuilder.Locations[1]);
 
         using ArborisDbContext db = await dbFactory.CreateDbContextAsync();
         Assert.AreEqual(2, await db.Cxx_Nodes.CountAsync());
@@ -49,8 +49,8 @@ public class LinkDependencyAsyncTests
             .GenerateRootNode1().GenerateRootNode2()
             .GenerateDependencyNode().GenerateDependencyNode2();
 
-        await cxxRepository.LinkDependencyAsync(generateBuilder.Projects[0].Id, generateBuilder.Locations[0], generateBuilder.Locations[2]);
-        await cxxRepository.LinkDependencyAsync(generateBuilder.Projects[0].Id, generateBuilder.Locations[0], generateBuilder.Locations[3]);
+        await cxxRepository.LinkDependencyAsync(generateBuilder.Projects[0].Id, "Arboris", generateBuilder.Locations[0], generateBuilder.Locations[2]);
+        await cxxRepository.LinkDependencyAsync(generateBuilder.Projects[0].Id, "Arboris", generateBuilder.Locations[0], generateBuilder.Locations[3]);
 
         using ArborisDbContext db = await dbFactory.CreateDbContextAsync();
         Assert.AreEqual(4, await db.Cxx_Nodes.CountAsync());
@@ -67,7 +67,7 @@ public class LinkDependencyAsyncTests
             .GenerateRootNode1()
             .GenerateDependencyNode();
 
-        await cxxRepository.LinkDependencyCallExprOperatorEqualAsync(generateBuilder.Projects[0].Id, generateBuilder.Locations[0], generateBuilder.Locations[1]);
+        await cxxRepository.LinkDependencyCallExprOperatorEqualAsync(generateBuilder.Projects[0].Id, "Arboris", generateBuilder.Locations[0], generateBuilder.Locations[1]);
 
         using ArborisDbContext db = await dbFactory.CreateDbContextAsync();
         Assert.AreEqual(2, await db.Cxx_Nodes.CountAsync());
@@ -78,7 +78,7 @@ public class LinkDependencyAsyncTests
 
         AddNode addNode = Generator.GenerateAddNodeWithDependencyFunctionDeclNode(generateBuilder.Projects[0].Id);
         await cxxRepository.AddNodeAsync(addNode);
-        Result result = await cxxRepository.LinkDependencyCallExprOperatorEqualAsync(generateBuilder.Projects[0].Id, generateBuilder.Locations[0], addNode.DefineLocation!);
+        Result result = await cxxRepository.LinkDependencyCallExprOperatorEqualAsync(generateBuilder.Projects[0].Id, "Arboris", generateBuilder.Locations[0], addNode.DefineLocation!);
         Assert.IsFalse(result.IsSuccess);
     }
 }
