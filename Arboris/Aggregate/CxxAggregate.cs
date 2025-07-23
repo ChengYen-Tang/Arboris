@@ -150,12 +150,12 @@ public class CxxAggregate(ICxxRepository nodeRepository)
             if (node.IsSuccess)
             {
                 node.Value.ImplementationsLocation.Add(addNode.ImplementationLocation!);
-                Result UpdateResulr = await nodeRepository.UpdateNodeLocationAsync(new(node.Value.Id, node.Value.DefineLocation, node.Value.ImplementationsLocation));
-                if (UpdateResulr.IsFailed)
-                    return UpdateResulr;
-                UpdateResulr = await nodeRepository.UpdateNodeAsync(node.Value);
-                if (UpdateResulr.IsFailed)
-                    return UpdateResulr;
+                Result UpdateResult = await nodeRepository.UpdateNodeLocationAsync(new(node.Value.Id, node.Value.DefineLocation, node.Value.ImplementationsLocation));
+                if (UpdateResult.IsFailed)
+                    return UpdateResult;
+                UpdateResult = await nodeRepository.UpdateNodeAsync(node.Value);
+                if (UpdateResult.IsFailed)
+                    return UpdateResult;
                 return Result.Ok();
             }
             else if (addNode.DefineLocation.SourceCode == null && addNode.ImplementationLocation is not null)

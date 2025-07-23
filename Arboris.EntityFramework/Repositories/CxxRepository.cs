@@ -24,8 +24,8 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
                 StartColumn = addNode.DefineLocation.StartColumn,
                 EndLine = addNode.DefineLocation.EndLine,
                 EndColumn = addNode.DefineLocation.EndColumn,
-                SourceCode = addNode.DefineLocation.SourceCode,
-                DisplayName = addNode.DefineLocation.DisplayName
+                SourceCode = addNode.DefineLocation.SourceCode.Value,
+                DisplayName = addNode.DefineLocation.DisplayName.Value
             };
         if (addNode.ImplementationLocation is not null)
             implementationLocation = [new()
@@ -35,8 +35,8 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
                 StartColumn = addNode.ImplementationLocation.StartColumn,
                 EndLine = addNode.ImplementationLocation.EndLine,
                 EndColumn = addNode.ImplementationLocation.EndColumn,
-                SourceCode = addNode.ImplementationLocation.SourceCode,
-                DisplayName = addNode.ImplementationLocation.DisplayName
+                SourceCode = addNode.ImplementationLocation.SourceCode.Value,
+                DisplayName = addNode.ImplementationLocation.DisplayName.Value
             }];
 
         Node node = new()
@@ -116,11 +116,11 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         if (defineLocation.Node is null)
             throw new InvalidOperationException("DefineLocation.Node is null");
 
-        Models.Analyze.CXX.Location domainDefineLocation = new(defineLocation.FilePath, defineLocation.StartLine, defineLocation.StartColumn, defineLocation.EndLine, defineLocation.EndColumn) { SourceCode = defineLocation.SourceCode, DisplayName = defineLocation.DisplayName };
+        Models.Analyze.CXX.Location domainDefineLocation = new(defineLocation.FilePath, defineLocation.StartLine, defineLocation.StartColumn, defineLocation.EndLine, defineLocation.EndColumn) { SourceCode = new(defineLocation.SourceCode), DisplayName = new(defineLocation.DisplayName) };
         ICollection<Models.Analyze.CXX.Location> domainImplementationLocation = [.. defineLocation.Node.ImplementationsLocation.AsParallel().Select(item => new Models.Analyze.CXX.Location(item.FilePath, item.StartLine, item.StartColumn, item.EndLine, item.EndColumn)
         {
-            SourceCode = item.SourceCode,
-            DisplayName = item.DisplayName
+            SourceCode = new(item.SourceCode),
+            DisplayName = new(item.DisplayName)
         })];
         Models.Analyze.CXX.Node node = new()
         {
@@ -168,11 +168,11 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         if (defineLocation!.Node is null)
             throw new InvalidOperationException("DefineLocation.Node is null");
 
-        Models.Analyze.CXX.Location domainDefineLocation = new(defineLocation.FilePath, defineLocation.StartLine, defineLocation.StartColumn, defineLocation.EndLine, defineLocation.EndColumn) { SourceCode = defineLocation.SourceCode, DisplayName = defineLocation.DisplayName };
+        Models.Analyze.CXX.Location domainDefineLocation = new(defineLocation.FilePath, defineLocation.StartLine, defineLocation.StartColumn, defineLocation.EndLine, defineLocation.EndColumn) { SourceCode = new(defineLocation.SourceCode), DisplayName = new(defineLocation.DisplayName) };
         ICollection<Models.Analyze.CXX.Location> domainImplementationLocation = [.. defineLocation.Node.ImplementationsLocation.AsParallel().Select(item => new Models.Analyze.CXX.Location(item.FilePath, item.StartLine, item.StartColumn, item.EndLine, item.EndColumn)
         {
-            SourceCode = item.SourceCode,
-            DisplayName = item.DisplayName
+            SourceCode = new(item.SourceCode),
+            DisplayName = new(item.DisplayName)
         })];
         Models.Analyze.CXX.Node node = new()
         {
@@ -281,11 +281,11 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         {
             Models.Analyze.CXX.Location? defineLocation = null;
             if (item.DefineLocation is not null)
-                defineLocation = new Models.Analyze.CXX.Location(item.DefineLocation.FilePath, item.DefineLocation.StartLine, item.DefineLocation.StartColumn, item.DefineLocation.EndLine, item.DefineLocation.EndColumn) { SourceCode = item.DefineLocation.SourceCode, DisplayName = item.DefineLocation.DisplayName };
+                defineLocation = new Models.Analyze.CXX.Location(item.DefineLocation.FilePath, item.DefineLocation.StartLine, item.DefineLocation.StartColumn, item.DefineLocation.EndLine, item.DefineLocation.EndColumn) { SourceCode = new(item.DefineLocation.SourceCode), DisplayName = new(item.DefineLocation.DisplayName) };
             ICollection<Models.Analyze.CXX.Location> implementationLocation = [.. item.ImplementationsLocation.AsParallel().Select(item1 => new Models.Analyze.CXX.Location(item1.FilePath, item1.StartLine, item1.StartColumn, item1.EndLine, item1.EndColumn)
             {
-                SourceCode = item1.SourceCode,
-                DisplayName = item1.DisplayName
+                SourceCode = new(item1.SourceCode),
+                DisplayName = new(item1.DisplayName)
             })];
             return new Models.Analyze.CXX.NodeInfoWithLocation(item.Id, item.VcProjectName, item.CursorKindSpelling, item.Spelling, item.CxType, item.AccessSpecifiers, item.NameSpace, item.UserDescription, item.LLMDescription, defineLocation, implementationLocation);
         }).ToArray();
@@ -315,11 +315,11 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
 
         Models.Analyze.CXX.Location? defineLocation = null;
         if (node.DefineLocation is not null)
-            defineLocation = new Models.Analyze.CXX.Location(node.DefineLocation.FilePath, node.DefineLocation.StartLine, node.DefineLocation.StartColumn, node.DefineLocation.EndLine, node.DefineLocation.EndColumn) { SourceCode = node.DefineLocation.SourceCode, DisplayName = node.DefineLocation.DisplayName };
+            defineLocation = new Models.Analyze.CXX.Location(node.DefineLocation.FilePath, node.DefineLocation.StartLine, node.DefineLocation.StartColumn, node.DefineLocation.EndLine, node.DefineLocation.EndColumn) { SourceCode = new(node.DefineLocation.SourceCode), DisplayName = new(node.DefineLocation.DisplayName) };
         ICollection<Models.Analyze.CXX.Location> implementationLocation = [.. node.ImplementationsLocation.AsParallel().Select(item => new Models.Analyze.CXX.Location(item.FilePath, item.StartLine, item.StartColumn, item.EndLine, item.EndColumn)
         {
-            SourceCode = item.SourceCode,
-            DisplayName = item.DisplayName
+            SourceCode = new(item.SourceCode),
+            DisplayName = new(item.DisplayName)
         })];
         return new Models.Analyze.CXX.Node()
         {
@@ -551,8 +551,8 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
                 StartColumn = node.DefineLocation.StartColumn,
                 EndLine = node.DefineLocation.EndLine,
                 EndColumn = node.DefineLocation.EndColumn,
-                SourceCode = node.DefineLocation.SourceCode,
-                DisplayName = node.DefineLocation.DisplayName,
+                SourceCode = node.DefineLocation.SourceCode.Value,
+                DisplayName = node.DefineLocation.DisplayName.Value,
                 Node = dbNode
             };
             await dbContext.Cxx_DefineLocations.AddAsync(location);
@@ -564,8 +564,8 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             defineLocation.StartColumn = node.DefineLocation!.StartColumn;
             defineLocation.EndLine = node.DefineLocation!.EndLine;
             defineLocation.EndColumn = node.DefineLocation!.EndColumn;
-            defineLocation.SourceCode = node.DefineLocation!.SourceCode;
-            defineLocation.DisplayName = node.DefineLocation!.DisplayName;
+            defineLocation.SourceCode = node.DefineLocation!.SourceCode.Value;
+            defineLocation.DisplayName = node.DefineLocation!.DisplayName.Value;
             dbContext.Cxx_DefineLocations.Update(defineLocation);
         }
         else if (defineLocation is not null && node.DefineLocation is null)
@@ -579,7 +579,7 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
 
         ICollection<ImplementationLocation> needRemove = [.. implementationsLocation.AsParallel().Where(item => !newImplementationsLocationHash.Contains(item.ComputeSHA256Hash()))];
         dbContext.Cxx_ImplementationLocations.RemoveRange(needRemove);
-        ICollection<Models.Analyze.CXX.Location> needAdd = [.. node.ImplementationsLocation.AsParallel().Where(item => !dbImplementationsLocationHash.Contains(item.ComputeSHA256Hash()))];
+        HashSet<Models.Analyze.CXX.Location> needAdd = [.. node.ImplementationsLocation.AsParallel().Where(item => !dbImplementationsLocationHash.Contains(item.ComputeSHA256Hash()))];
         await dbContext.Cxx_ImplementationLocations.AddRangeAsync(needAdd.Select(item => new ImplementationLocation
         {
             FilePath = item.FilePath,
@@ -587,8 +587,8 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             StartColumn = item.StartColumn,
             EndLine = item.EndLine,
             EndColumn = item.EndColumn,
-            SourceCode = item.SourceCode,
-            DisplayName = item.DisplayName,
+            SourceCode = item.SourceCode.Value,
+            DisplayName = item.DisplayName.Value,
             Node = dbNode
         }));
 

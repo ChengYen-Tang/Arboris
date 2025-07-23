@@ -164,14 +164,14 @@ public class ClangCore : IDisposable
         }
     }
 
-    public static string GetSourceCode(string filePath, int startLine, int endLine)
+    public static string GetSourceCode(Location location)
     {
         // 注意：startLine, endLine 皆為 1-based
         return string.Join(
             Environment.NewLine,
-            File.ReadLines(filePath)
-                .Skip(startLine - 1)
-                .Take(endLine - startLine + 1)
+            File.ReadLines(location.FilePath)
+                .Skip((int)location.StartLine - 1)
+                .Take((int)location.EndLine - (int)location.StartLine + 1)
         );
     }
 
