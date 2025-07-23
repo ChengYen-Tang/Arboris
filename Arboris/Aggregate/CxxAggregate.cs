@@ -158,11 +158,6 @@ public class CxxAggregate(ICxxRepository nodeRepository)
                     return UpdateResult;
                 return Result.Ok();
             }
-            else if (addNode.DefineLocation.SourceCode == null && addNode.ImplementationLocation is not null)
-                // 這個情況是在 ExploreAstNode 時，defineLocation == location ? null : defineLocation，使用了 defineLocation 作為 addNode 的 DefineLocation
-                // 理論上執行這行前會先使用 await Scan(defineLocation.FilePath, ct) 將 defineLocation 的 Node 加入到資料庫中
-                // 但可能因為 Macro 導致沒有新增 node，這會缺少 sourceCode, class關連及其它資訊
-                addNode = new(addNode.ProjectId, addNode.VcProjectName, addNode.CursorKindSpelling, addNode.Spelling, addNode.CxType, addNode.NameSpace, addNode.AccessSpecifiers, null, addNode.ImplementationLocation);
         }
         bool isExists = await nodeRepository.CheckImplementationNodeExistsAsync(addNode);
         if (isExists)

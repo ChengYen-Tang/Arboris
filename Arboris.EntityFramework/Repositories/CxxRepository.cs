@@ -430,6 +430,9 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
         if (!await dbContext.Cxx_Nodes.AnyAsync(item => item.Id == memberId && item.ProjectId == projectId && item.VcProjectName == vcProjectName))
             return Result.Fail($"Member not found. Member id: {memberId}");
+
+        if (await dbContext.Cxx_NodeMembers.AnyAsync(item => item.NodeId == NodeId.Value && item.MemberId == memberId))
+            return Result.Ok();
         await dbContext.Cxx_NodeMembers.AddAsync(new() { NodeId = NodeId.Value, MemberId = memberId });
         await dbContext.SaveChangesAsync();
         return Result.Ok();
@@ -566,7 +569,6 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             defineLocation.EndColumn = node.DefineLocation!.EndColumn;
             defineLocation.SourceCode = node.DefineLocation!.SourceCode?.Value;
             defineLocation.DisplayName = node.DefineLocation!.DisplayName?.Value;
-            dbContext.Cxx_DefineLocations.Update(defineLocation);
         }
         else if (defineLocation is not null && node.DefineLocation is null)
         {
@@ -578,19 +580,23 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         HashSet<string> newImplementationsLocationHash = [.. node.ImplementationsLocation.AsParallel().Select(item => item.ComputeSHA256Hash())];
 
         ICollection<ImplementationLocation> needRemove = [.. implementationsLocation.AsParallel().Where(item => !newImplementationsLocationHash.Contains(item.ComputeSHA256Hash()))];
-        dbContext.Cxx_ImplementationLocations.RemoveRange(needRemove);
+        if (needRemove.Count > 0)
+            dbContext.Cxx_ImplementationLocations.RemoveRange(needRemove);
         HashSet<Models.Analyze.CXX.Location> needAdd = [.. node.ImplementationsLocation.AsParallel().Where(item => !dbImplementationsLocationHash.Contains(item.ComputeSHA256Hash()))];
-        await dbContext.Cxx_ImplementationLocations.AddRangeAsync(needAdd.Select(item => new ImplementationLocation
+        if (needAdd.Count > 0)
         {
-            FilePath = item.FilePath,
-            StartLine = item.StartLine,
-            StartColumn = item.StartColumn,
-            EndLine = item.EndLine,
-            EndColumn = item.EndColumn,
-            SourceCode = item.SourceCode?.Value,
-            DisplayName = item.DisplayName?.Value,
-            Node = dbNode
-        }));
+            await dbContext.Cxx_ImplementationLocations.AddRangeAsync(needAdd.Select(item => new ImplementationLocation
+            {
+                FilePath = item.FilePath,
+                StartLine = item.StartLine,
+                StartColumn = item.StartColumn,
+                EndLine = item.EndLine,
+                EndColumn = item.EndColumn,
+                SourceCode = item.SourceCode?.Value,
+                DisplayName = item.DisplayName?.Value,
+                Node = dbNode
+            }));
+        }
 
         await dbContext.SaveChangesAsync();
         return Result.Ok();
