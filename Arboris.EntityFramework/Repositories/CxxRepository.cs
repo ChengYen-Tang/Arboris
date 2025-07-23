@@ -24,8 +24,8 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
                 StartColumn = addNode.DefineLocation.StartColumn,
                 EndLine = addNode.DefineLocation.EndLine,
                 EndColumn = addNode.DefineLocation.EndColumn,
-                SourceCode = addNode.DefineLocation.SourceCode.Value,
-                DisplayName = addNode.DefineLocation.DisplayName.Value
+                SourceCode = addNode.DefineLocation.SourceCode?.Value,
+                DisplayName = addNode.DefineLocation.DisplayName?.Value
             };
         if (addNode.ImplementationLocation is not null)
             implementationLocation = [new()
@@ -35,8 +35,8 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
                 StartColumn = addNode.ImplementationLocation.StartColumn,
                 EndLine = addNode.ImplementationLocation.EndLine,
                 EndColumn = addNode.ImplementationLocation.EndColumn,
-                SourceCode = addNode.ImplementationLocation.SourceCode.Value,
-                DisplayName = addNode.ImplementationLocation.DisplayName.Value
+                SourceCode = addNode.ImplementationLocation.SourceCode?.Value,
+                DisplayName = addNode.ImplementationLocation.DisplayName?.Value
             }];
 
         Node node = new()
@@ -551,8 +551,8 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
                 StartColumn = node.DefineLocation.StartColumn,
                 EndLine = node.DefineLocation.EndLine,
                 EndColumn = node.DefineLocation.EndColumn,
-                SourceCode = node.DefineLocation.SourceCode.Value,
-                DisplayName = node.DefineLocation.DisplayName.Value,
+                SourceCode = node.DefineLocation.SourceCode?.Value,
+                DisplayName = node.DefineLocation.DisplayName?.Value,
                 Node = dbNode
             };
             await dbContext.Cxx_DefineLocations.AddAsync(location);
@@ -564,8 +564,8 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             defineLocation.StartColumn = node.DefineLocation!.StartColumn;
             defineLocation.EndLine = node.DefineLocation!.EndLine;
             defineLocation.EndColumn = node.DefineLocation!.EndColumn;
-            defineLocation.SourceCode = node.DefineLocation!.SourceCode.Value;
-            defineLocation.DisplayName = node.DefineLocation!.DisplayName.Value;
+            defineLocation.SourceCode = node.DefineLocation!.SourceCode?.Value;
+            defineLocation.DisplayName = node.DefineLocation!.DisplayName?.Value;
             dbContext.Cxx_DefineLocations.Update(defineLocation);
         }
         else if (defineLocation is not null && node.DefineLocation is null)
@@ -587,8 +587,8 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             StartColumn = item.StartColumn,
             EndLine = item.EndLine,
             EndColumn = item.EndColumn,
-            SourceCode = item.SourceCode.Value,
-            DisplayName = item.DisplayName.Value,
+            SourceCode = item.SourceCode?.Value,
+            DisplayName = item.DisplayName?.Value,
             Node = dbNode
         }));
 

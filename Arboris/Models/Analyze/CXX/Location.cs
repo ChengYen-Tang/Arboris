@@ -6,8 +6,8 @@ public class Location
     public uint StartColumn { get; set; }
     public uint EndLine { get; init; }
     public uint EndColumn { get; set; }
-    public Lazy<string?> SourceCode { get; set; }
-    public Lazy<string?> DisplayName { get; set; }
+    public Lazy<string?>? SourceCode { get; set; }
+    public Lazy<string?>? DisplayName { get; set; }
 
     public Location(string filePath, uint startLine, uint startColumn, uint endLine, uint endColumn)
         => (FilePath, StartLine, StartColumn, EndLine, EndColumn) = (filePath, startLine, startColumn, endLine, endColumn);
