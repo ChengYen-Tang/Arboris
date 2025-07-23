@@ -676,21 +676,20 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         return result.AsParallel().SelectMany(item => item).Distinct().ToArray();
     }
 
-    public async Task<Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId)>> GetNodeInfoWithClassIdAsync(Guid nodeId)
+    public async Task<Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId, string? CursorKindSpelling, bool NeedGenerate, string VcProjectName)>> GetNodeInfoWithClassIdAsync(Guid nodeId)
     {
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
-        Node? node = await dbContext.Cxx_Nodes
-            .FindAsync(nodeId);
+        Node? node = await dbContext.Cxx_Nodes.Include(item => item.ImplementationsLocation).FirstOrDefaultAsync(item => item.Id == nodeId);
 
         if (node is null)
-            return Result.Fail<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId)>("Node not found");
+            return Result.Fail<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId, string? CursorKindSpelling, bool NeedGenerate, string VcProjectName)>("Node not found");
 
         Guid classNodeId = await dbContext.Cxx_NodeMembers
             .Where(item => item.MemberId == nodeId)
             .Select(item => item.NodeId)
             .FirstOrDefaultAsync();
 
-        return (node.NameSpace, node.Spelling, node.AccessSpecifiers, classNodeId == Guid.Empty ? null : classNodeId);
+        return (node.NameSpace, node.Spelling, node.AccessSpecifiers, classNodeId == Guid.Empty ? null : classNodeId, node.CursorKindSpelling, node.ImplementationsLocation.Count > 0, node.VcProjectName);
     }
 
     public async Task<Result<NodeSourceCode[]>> GetNodeSourceCodeAsync(Guid nodeId)
@@ -716,10 +715,10 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
     public async Task<Result<GetAllNodeDto[]>> GetAllNodeAsync(Guid projectId)
     {
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
-        Project? project = await dbContext.Projects.Include(item => item.CxxNodes).FirstOrDefaultAsync(item => item.Id == projectId);
+        Project? project = await dbContext.Projects.Include(item => item.CxxNodes).ThenInclude(item => item.ImplementationsLocation).FirstOrDefaultAsync(item => item.Id == projectId);
         if (project is null)
             return Result.Fail("Project not found");
-        return project.CxxNodes!.AsParallel().Select(item => new GetAllNodeDto(item.Id, item.CursorKindSpelling, item.CursorKindSpelling == "ClassDecl" || item.CursorKindSpelling == "FunctionDecl", item.VcProjectName)).ToArray();
+        return project.CxxNodes!.AsParallel().Select(item => new GetAllNodeDto(item.Id, item.CursorKindSpelling, item.ImplementationsLocation.Count > 0)).ToArray();
     }
 
     public async Task<Result<NodeLines>> GetNodeAndLineStringFromFile(Guid projectId, string filePath, int line)

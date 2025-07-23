@@ -106,13 +106,13 @@ public class CxxAggregate(ICxxRepository nodeRepository)
 
     public async Task<Result<NodeInfoWithDependency>> GetNodeInfoWithDependencyAsync(Guid nodeId)
     {
-        Task<Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId)>> GetNodeInfoWithClassIdAsyncTask = nodeRepository.GetNodeInfoWithClassIdAsync(nodeId);
+        Task<Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId, string? CursorKindSpelling, bool NeedGenerate, string VcProjectName)>> GetNodeInfoWithClassIdAsyncTask = nodeRepository.GetNodeInfoWithClassIdAsync(nodeId);
         Task<Result<NodeSourceCode[]>> GetNodeSourceCodeAsyncTask = nodeRepository.GetNodeSourceCodeAsync(nodeId);
         Task<Result<Guid[]>> GetNodeDependenciesIdAsyncTask = nodeRepository.GetNodeDependenciesIdAsync(nodeId);
 
         await Task.WhenAll(GetNodeInfoWithClassIdAsyncTask, GetNodeSourceCodeAsyncTask, GetNodeDependenciesIdAsyncTask);
 
-        Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId)> GetNodeInfoWithClassIdResult = GetNodeInfoWithClassIdAsyncTask.Result;
+        Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId, string? CursorKindSpelling, bool NeedGenerate, string VcProjectName)> GetNodeInfoWithClassIdResult = GetNodeInfoWithClassIdAsyncTask.Result;
         Result<NodeSourceCode[]> GetNodeSourceCodeResult = GetNodeSourceCodeAsyncTask.Result;
         Result<Guid[]> GetNodeDependenciesIdResult = GetNodeDependenciesIdAsyncTask.Result;
 
@@ -123,7 +123,7 @@ public class CxxAggregate(ICxxRepository nodeRepository)
         if (GetNodeDependenciesIdResult.IsFailed)
             return GetNodeDependenciesIdResult.ToResult();
 
-        return new NodeInfoWithDependency(GetNodeSourceCodeResult.Value, GetNodeInfoWithClassIdResult.Value.NameSpace, GetNodeInfoWithClassIdResult.Value.Spelling, GetNodeInfoWithClassIdResult.Value.AccessSpecifiers, GetNodeInfoWithClassIdResult.Value.ClassNodeId, GetNodeDependenciesIdResult.Value);
+        return new NodeInfoWithDependency(GetNodeSourceCodeResult.Value, GetNodeInfoWithClassIdResult.Value.NameSpace, GetNodeInfoWithClassIdResult.Value.Spelling, GetNodeInfoWithClassIdResult.Value.AccessSpecifiers, GetNodeInfoWithClassIdResult.Value.ClassNodeId, GetNodeDependenciesIdResult.Value, GetNodeInfoWithClassIdResult.Value.CursorKindSpelling, GetNodeInfoWithClassIdResult.Value.NeedGenerate, GetNodeInfoWithClassIdResult.Value.VcProjectName);
     }
 
     /// <summary>

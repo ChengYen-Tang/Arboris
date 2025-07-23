@@ -76,7 +76,7 @@ public interface ICxxRepository
     /// <returns></returns>
     Task<Result<Node>> GetNodeAsync(Guid nodeId);
 
-    Task<Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId)>> GetNodeInfoWithClassIdAsync(Guid nodeId);
+    Task<Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId, string? CursorKindSpelling, bool NeedGenerate, string VcProjectName)>> GetNodeInfoWithClassIdAsync(Guid nodeId);
 
     Task<Result<NodeSourceCode[]>> GetNodeSourceCodeAsync(Guid nodeId);
 
