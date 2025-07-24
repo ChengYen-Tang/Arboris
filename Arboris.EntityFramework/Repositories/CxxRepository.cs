@@ -1,4 +1,5 @@
-﻿using Arboris.EntityFramework.EntityFrameworkCore;
+﻿using Arboris.EntityFramework.Dto;
+using Arboris.EntityFramework.EntityFrameworkCore;
 using Arboris.EntityFramework.EntityFrameworkCore.CXX;
 using Arboris.Models.Graph.CXX;
 using Arboris.Repositories;
@@ -203,6 +204,25 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
             NodeId = await dbContext.Cxx_ImplementationLocations
                 .Include(item => item.Node)
                 .Where(item => item.Node!.ProjectId == projectId && item.Node!.VcProjectName == vcProjectName && item.FilePath == location.FilePath && item.StartLine == location.StartLine && item.EndLine == location.EndLine && item.StartColumn == location.StartColumn && item.EndColumn == location.EndColumn)
+                .Select(item => item.NodeId)
+                .FirstOrDefaultAsync();
+        if (NodeId == Guid.Empty)
+            return Result.Fail("Node location not found");
+        return NodeId;
+    }
+
+    private async Task<Result<Guid>> GetNodeIdFromLocationAsync(Guid projectId, Models.Analyze.CXX.Location location)
+    {
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        Guid NodeId = await dbContext.Cxx_DefineLocations
+            .Include(item => item.Node)
+            .Where(item => item.Node!.ProjectId == projectId && item.FilePath == location.FilePath && item.StartLine == location.StartLine && item.EndLine == location.EndLine && item.StartColumn == location.StartColumn && item.EndColumn == location.EndColumn)
+            .Select(item => item.NodeId)
+            .FirstOrDefaultAsync();
+        if (NodeId == Guid.Empty)
+            NodeId = await dbContext.Cxx_ImplementationLocations
+                .Include(item => item.Node)
+                .Where(item => item.Node!.ProjectId == projectId && item.FilePath == location.FilePath && item.StartLine == location.StartLine && item.EndLine == location.EndLine && item.StartColumn == location.StartColumn && item.EndColumn == location.EndColumn)
                 .Select(item => item.NodeId)
                 .FirstOrDefaultAsync();
         if (NodeId == Guid.Empty)
@@ -422,20 +442,42 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
     }
 
     /// <inheritdoc />
-    public async Task<Result> LinkMemberAsync(Guid projectId, string vcProjectName, Models.Analyze.CXX.Location classLocation, Guid memberId)
+    public async Task LinkMemberAsync(Guid projectId, Models.Analyze.CXX.Location classLocation, ConcurrentDictionary<Guid, IReadOnlyList<string>> node)
     {
-        Result<Guid> NodeId = await GetNodeIdFromLocationAsync(projectId, vcProjectName, classLocation);
-        if (NodeId.IsFailed)
-            return Result.Fail($"Node location not found. Start line: {classLocation.StartLine}, End Line: {classLocation.EndLine}, File: {classLocation.FilePath}");
-        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
-        if (!await dbContext.Cxx_Nodes.AnyAsync(item => item.Id == memberId && item.ProjectId == projectId && item.VcProjectName == vcProjectName))
-            return Result.Fail($"Member not found. Member id: {memberId}");
+        Dictionary<string, Guid> classLocationByProject = [];
+        HashSet<LinkNodeId> buffer = [];
+        Lazy<Result<Guid>> defaultNode = new(GetNodeIdFromLocationAsync(projectId, classLocation).Result);
 
-        if (await dbContext.Cxx_NodeMembers.AnyAsync(item => item.NodeId == NodeId.Value && item.MemberId == memberId))
-            return Result.Ok();
-        await dbContext.Cxx_NodeMembers.AddAsync(new() { NodeId = NodeId.Value, MemberId = memberId });
+        foreach (KeyValuePair<Guid, IReadOnlyList<string>> item in node)
+        {
+            bool isFind = false;
+            foreach (string vcProjectName in item.Value)
+            {
+                if (classLocationByProject.TryGetValue(vcProjectName, out Guid classId))
+                {
+                    buffer.Add(new(classId, item.Key));
+                    isFind = true;
+                    break;
+                }
+
+                Result<Guid> nodeId = await GetNodeIdFromLocationAsync(projectId, vcProjectName, classLocation);
+                if (nodeId.IsSuccess)
+                {
+                    classLocationByProject[vcProjectName] = nodeId.Value;
+                    buffer.Add(new(nodeId.Value, item.Key));
+                    isFind = true;
+                    break;
+                }
+            }
+
+            if (!isFind)
+                if (defaultNode.Value.IsSuccess)
+                    buffer.Add(new(defaultNode.Value.Value, item.Key));
+        }
+
+        using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
+        await dbContext.Cxx_NodeMembers.AddRangeAsync(buffer.Select(item => new NodeMember { NodeId = item.First, MemberId = item.Second }));
         await dbContext.SaveChangesAsync();
-        return Result.Ok();
     }
 
     /// <inheritdoc />

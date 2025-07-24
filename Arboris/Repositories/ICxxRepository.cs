@@ -1,6 +1,7 @@
 ﻿using Arboris.Models.Analyze.CXX;
 using Arboris.Models.Graph.CXX;
 using FluentResults;
+using System.Collections.Concurrent;
 
 namespace Arboris.Repositories;
 
@@ -84,11 +85,10 @@ public interface ICxxRepository
     /// Link a member to a class or struct
     /// </summary>
     /// <param name="projectId"> Project id </param>
-    /// <param name="vcProjectName"> Visual studio project name </param>
     /// <param name="classLocation"> Location of class or struct node </param>
-    /// <param name="memberId"> Member node id </param>
+    /// <param name="node"> member node </param>
     /// <returns></returns>
-    Task<Result> LinkMemberAsync(Guid projectId, string vcProjectName, Location classLocation, Guid memberId);
+    Task LinkMemberAsync(Guid projectId, Models.Analyze.CXX.Location classLocation, ConcurrentDictionary<Guid, IReadOnlyList<string>> node);
 
     /// <summary>
     /// Link a dependency to a class, struct, function, method, field, etc.

@@ -2,6 +2,7 @@
 using Arboris.Models.Graph.CXX;
 using Arboris.Repositories;
 using FluentResults;
+using System.Collections.Concurrent;
 
 namespace Arboris.Aggregate;
 
@@ -27,12 +28,13 @@ public class CxxAggregate(ICxxRepository nodeRepository)
     /// Link member Node to class node
     /// </summary>
     /// <param name="projectId"> Project id </param>
-    /// <param name="vcProjectName"> Visual studio project name </param>
-    /// <param name="classLocation"> Location of class or struct node </param>
-    /// <param name="memberId"> Member node id </param>
+    /// <param name="memberBuffer"> Member info to be associated </param>
     /// <returns></returns>
-    public Task<Result> LinkMemberAsync(Guid projectId, string vcProjectName, Location classLocation, Guid memberId)
-        => nodeRepository.LinkMemberAsync(projectId, vcProjectName, classLocation, memberId);
+    public Task LinkMemberAsync(Guid projectId, IDictionary<Location, ConcurrentDictionary<Guid, IReadOnlyList<string>>> memberBuffer)
+        => Parallel.ForEachAsync(memberBuffer, async (buffer, Task) =>
+        {
+            await nodeRepository.LinkMemberAsync(projectId, buffer.Key, buffer.Value);
+        });
 
     /// <summary>
     /// Find node dependency and link to the node

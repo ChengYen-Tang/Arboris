@@ -1,5 +1,6 @@
 ﻿using Arboris.EntityFramework.EntityFrameworkCore.CXX;
 using Arboris.Tests.EntityFramework.Repositories.TestData;
+using System.Collections.Concurrent;
 
 namespace Arboris.Tests.EntityFramework.Repositories.CxxRepositoryTests;
 
@@ -29,7 +30,9 @@ public class LinkMemberAsyncTests
     {
         generateBuilder.GenerateProject1().GenerateRootNode1().GenerateMemberNode();
 
-        await cxxRepository.LinkMemberAsync(generateBuilder.Projects[0].Id, "Arboris", generateBuilder.Locations[0], generateBuilder.Nodes[1].Id);
+        ConcurrentDictionary<Guid, IReadOnlyList<string>> memberBuffer = new();
+        memberBuffer.TryAdd(generateBuilder.Nodes[1].Id, ["Arboris"]);
+        await cxxRepository.LinkMemberAsync(generateBuilder.Projects[0].Id, generateBuilder.Locations[0], memberBuffer);
 
         using ArborisDbContext db = await dbFactory.CreateDbContextAsync();
         Assert.AreEqual(2, await db.Cxx_Nodes.CountAsync());
@@ -46,8 +49,10 @@ public class LinkMemberAsyncTests
             .GenerateRootNode1().GenerateRootNode2()
             .GenerateMemberNode().GenerateMemberNode2();
 
-        await cxxRepository.LinkMemberAsync(generateBuilder.Projects[0].Id, "Arboris", generateBuilder.Locations[0], generateBuilder.Nodes[2].Id);
-        await cxxRepository.LinkMemberAsync(generateBuilder.Projects[0].Id, "Arboris", generateBuilder.Locations[0], generateBuilder.Nodes[3].Id);
+        ConcurrentDictionary<Guid, IReadOnlyList<string>> memberBuffer = new();
+        memberBuffer.TryAdd(generateBuilder.Nodes[2].Id, ["Arboris"]);
+        memberBuffer.TryAdd(generateBuilder.Nodes[3].Id, ["Arboris"]);
+        await cxxRepository.LinkMemberAsync(generateBuilder.Projects[0].Id, generateBuilder.Locations[0], memberBuffer);
 
         using ArborisDbContext db = await dbFactory.CreateDbContextAsync();
         Assert.AreEqual(4, await db.Cxx_Nodes.CountAsync());

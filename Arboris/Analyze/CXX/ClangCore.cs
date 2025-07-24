@@ -5,6 +5,7 @@ using Arboris.Models.Analyze.CXX;
 using ClangSharp;
 using FluentResults;
 using Microsoft.Extensions.Logging;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using Index = ClangSharp.Index;
 
@@ -45,9 +46,9 @@ public class ClangCore : IDisposable
         isFilesScaned = sourceCodes.ToDictionary(item => item, _ => false);
     }
 
-    public Task ScanNode(CancellationToken ct = default)
+    public Task ScanNode(ConcurrentDictionary<Location, ConcurrentDictionary<Guid, IReadOnlyList<string>>> memberBuffer, CancellationToken ct = default)
     {
-        ScanNode scanNode = new(logger, cxxAggregate, projectId, index, projectConfig, solutionPath, new(isFilesScaned), clangBaseArgs, translationUnits, PrintErrorMessage, GetRelativePath);
+        ScanNode scanNode = new(logger, cxxAggregate, projectId, index, projectConfig, solutionPath, new(isFilesScaned), clangBaseArgs, translationUnits, PrintErrorMessage, GetRelativePath, memberBuffer);
         return Scan(scanNode, "ScanNode", ct);
     }
 
@@ -193,4 +194,47 @@ public class ClangFactory(CxxAggregate cxxAggregate, ILogger<ClangCore> logger)
 {
     public ClangCore Create(Guid projectId, string path, ProjectInfo projectConfig)
         => new(projectId, path, cxxAggregate, logger, projectConfig);
+
+    public async Task Analyze(Guid id, ProjectInfo[] projectInfos, string projectDirectory)
+    {
+        ClangCore?[] clangCores = [.. projectInfos.Select(projectInfo => Create(id, projectDirectory, projectInfo))];
+        ConcurrentDictionary<Location, ConcurrentDictionary<Guid, IReadOnlyList<string>>> memberBuffer = [];
+
+        try
+        {
+            await Parallel.ForAsync(0, clangCores.Length, async (i, ct) =>
+            {
+                ClangCore? clang = clangCores[i];
+                if (clang is not null)
+                    await clang.ScanNode(memberBuffer, ct);
+
+            });
+
+            await cxxAggregate.LinkMemberAsync(id, memberBuffer);
+
+            await Parallel.ForAsync(0, clangCores.Length, async (i, ct) =>
+            {
+                ClangCore? clang = clangCores[i];
+                if (clang is not null)
+                    await clang.ScanLink(ct);
+            });
+
+            await Parallel.ForAsync(0, clangCores.Length, async (i, ct) =>
+            {
+                ClangCore? clang = clangCores[i];
+                if (clang is not null)
+                    await clang.RemoveTypeDeclarations(ct);
+            });
+        }
+        finally
+        {
+            for (int i = 0; i < clangCores.Length; i++)
+            {
+                ClangCore? clang = clangCores[i];
+                clang?.Dispose();
+                clangCores[i] = null;
+            }
+            GC.Collect();
+        }
+    }
 }
