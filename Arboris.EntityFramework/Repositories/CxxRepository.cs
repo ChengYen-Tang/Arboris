@@ -769,7 +769,7 @@ public class CxxRepository(IDbContextFactory<ArborisDbContext> dbContextFactory)
         return project.CxxNodes!.AsParallel().Select(item => new GetAllNodeDto(item.Id, item.CursorKindSpelling, item.ImplementationsLocation.Count > 0)).ToArray();
     }
 
-    public async Task<Result<NodeLines>> GetNodeAndLineStringFromFile(Guid projectId, string filePath, int line)
+    public async Task<Result<NodeLines>> GetSourceCodeFromFilePath(Guid projectId, string filePath, int line)
     {
         filePath = filePath.Replace("\\", "/");
         using ArborisDbContext dbContext = await dbContextFactory.CreateDbContextAsync();
