@@ -54,7 +54,7 @@ public interface ICxxRepository
     /// <param name="projectId"> Project id </param>
     /// <param name="location"> Define location </param>
     /// <returns></returns>
-    Task<Result<Node>> GetNodeFromDefineLocationCanCrossProjectAsync(Guid projectId, string vcProjectName, Location location);
+    Task<Result<Node>> GetNodeFromDefineLocationCanCrossProjectAsync(Guid projectId, IReadOnlyList<string> vcProjectNameFilter, Location location);
 
     /// <summary>
     /// Get all nodes from a project
@@ -98,7 +98,7 @@ public interface ICxxRepository
     /// <param name="nodeLocation"> Source node location </param>
     /// <param name="fromLocation"> Uesd node location </param>
     /// <returns></returns>
-    Task<Result> LinkDependencyAsync(Guid projectId, string vcProjectName, Location nodeLocation, Location fromLocation);
+    Task<Result> LinkDependencyAsync(Guid projectId, IReadOnlyList<string> vcProjectNameFilter, Location nodeLocation, Location fromLocation);
 
     /// <summary>
     /// Link a dependency to a class, struct
@@ -109,7 +109,7 @@ public interface ICxxRepository
     /// <param name="nodeLocation"> Source node location </param>
     /// <param name="fromLocation"> Uesd node location </param>
     /// <returns></returns>
-    Task<Result> LinkDependencyCallExprOperatorEqualAsync(Guid projectId, string vcProjectName, Location nodeLocation, Location fromLocation);
+    Task<Result> LinkDependencyCallExprOperatorEqualAsync(Guid projectId, IReadOnlyList<string> vcProjectNameFilter, Location nodeLocation, Location fromLocation);
 
     /// <summary>
     /// Link a type to a class, struct, function, method, field, etc.
@@ -119,7 +119,7 @@ public interface ICxxRepository
     /// <param name="nodeLocation"> Source node location </param>
     /// <param name="typeLocation"> Type node location </param>
     /// <returns></returns>
-    Task<Result> LinkTypeAsync(Guid projectId, string vcProjectName, Location nodeLocation, Location typeLocation);
+    Task<Result> LinkTypeAsync(Guid projectId, IReadOnlyList<string> vcProjectNameFilter, Location nodeLocation, Location typeLocation);
 
     Task<Result> MoveTypeDeclarationLinkAsync(Guid projectId, NodeInfo nodeInfo);
 
