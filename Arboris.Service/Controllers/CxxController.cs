@@ -93,15 +93,15 @@ public class CxxController(ILogger<CxxController> logger, ICxxRepository cxxRepo
     }
 
     [HttpGet]
-    [Route("GetNodeAndLineStringFromFile")]
-    [ProducesResponseType(typeof(GetNodeAndLineStringFromFileResponse), StatusCodes.Status200OK)]
+    [Route("GetSourceCodeFromFilePath")]
+    [ProducesResponseType(typeof(GetSourceCodeFromFilePathResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> GetNodeAndLineStringFromFile(Guid projectId, string filePath, int line)
+    public async Task<IActionResult> GetSourceCodeFromFilePath(Guid projectId, string filePath, int line)
     {
         try
         {
-            Result<NodeLines> result = await cxxRepository.GetNodeAndLineStringFromFile(projectId, filePath, line);
+            Result<NodeLines> result = await cxxRepository.GetSourceCodeFromFilePath(projectId, filePath, line);
             if (result.IsFailed)
             {
                 Guid errorId = Guid.NewGuid();
@@ -112,7 +112,7 @@ public class CxxController(ILogger<CxxController> logger, ICxxRepository cxxRepo
 
             string fileContent = GetLineContent(result.Value.Code!, (int)result.Value.StartLine, line);
 
-            return Ok(new GetNodeAndLineStringFromFileResponse(result.Value.Id, fileContent, result.Value.Code!));
+            return Ok(new GetSourceCodeFromFilePathResponse(result.Value.Id, fileContent, result.Value.Code!));
         }
         catch (Exception ex)
         {

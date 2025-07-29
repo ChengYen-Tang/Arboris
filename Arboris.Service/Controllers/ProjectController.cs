@@ -155,29 +155,10 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
         #endregion
 
         #region Clang analysis
-        ClangCore?[] clangCores = [.. projectConfig.ProjectInfos.Select(projectInfo => clangFactory.Create(id, projectDirectory, projectInfo))];
+        projectConfig.SetProjectDependencies();
         try
         {
-            await Parallel.ForAsync(0, clangCores.Length, async (i, ct) =>
-            {
-                ClangCore? clang = clangCores[i];
-                if (clang is not null)
-                    await clang.ScanNode(ct);
-            });
-
-            await Parallel.ForAsync(0, clangCores.Length, async (i, ct) =>
-            {
-                ClangCore? clang = clangCores[i];
-                if (clang is not null)
-                    await clang.ScanLink(ct);
-            });
-
-            await Parallel.ForAsync(0, clangCores.Length, async (i, ct) =>
-            {
-                ClangCore? clang = clangCores[i];
-                if (clang is not null)
-                    await clang.RemoveTypeDeclarations(ct);
-            });
+            await clangFactory.ParallelAnalyze(id, projectConfig.ProjectInfos, projectDirectory, ct);
         }
         catch (Exception ex)
         {
@@ -185,16 +166,6 @@ public class ProjectController(ILogger<ProjectController> logger, IProjectReposi
             Guid errorId = Guid.NewGuid();
             logger.LogError(ex, "Error Id: {ErrId}, clang.Scan Failed, Error message: {Message}", errorId, ex.Message);
             return StatusCode(StatusCodes.Status500InternalServerError, $"Error Id: {errorId}");
-        }
-        finally
-        {
-            for (int i = 0; i < clangCores.Length; i++)
-            {
-                ClangCore? clang = clangCores[i];
-                clang?.Dispose();
-                clangCores[i] = null;
-            }
-            GC.Collect();
         }
         #endregion
 

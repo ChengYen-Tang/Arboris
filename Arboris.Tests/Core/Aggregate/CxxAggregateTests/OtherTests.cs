@@ -1,6 +1,7 @@
 ﻿using Arboris.EntityFramework.EntityFrameworkCore.CXX;
 using Arboris.Tests.EntityFramework.Repositories.TestData;
 using Arboris.Tests.EntityFramework.Repositories.TestData.Generate;
+using System.Collections.Concurrent;
 
 namespace Arboris.Tests.Core.Aggregate.CxxAggregateTests;
 
@@ -26,11 +27,14 @@ public class OtherTests
             .GenerateMemberNode()
             .GenerateTypeNode().GenerateTypeNode2();
 
-        await cxxRepository.LinkDependencyAsync(generateBuilder.Projects[0].Id, generateBuilder.Locations[0], generateBuilder.Locations[2]);
-        await cxxRepository.LinkDependencyAsync(generateBuilder.Projects[0].Id, generateBuilder.Locations[0], generateBuilder.Locations[3]);
-        await cxxRepository.LinkMemberAsync(generateBuilder.Projects[0].Id, "Arboris", generateBuilder.Locations[0], generateBuilder.Nodes[4].Id);
-        await cxxRepository.LinkTypeAsync(generateBuilder.Projects[0].Id, generateBuilder.Locations[0], generateBuilder.Locations[5]);
-        await cxxRepository.LinkTypeAsync(generateBuilder.Projects[0].Id, generateBuilder.Locations[0], generateBuilder.Locations[6]);
+        ConcurrentDictionary<Guid, IReadOnlyList<string>> memberBuffer = new();
+        memberBuffer.TryAdd(generateBuilder.Nodes[4].Id, ["Arboris"]);
+
+        await cxxRepository.LinkDependencyAsync(generateBuilder.Projects[0].Id, ["Arboris"], generateBuilder.Locations[0], generateBuilder.Locations[2]);
+        await cxxRepository.LinkDependencyAsync(generateBuilder.Projects[0].Id, ["Arboris"], generateBuilder.Locations[0], generateBuilder.Locations[3]);
+        await cxxRepository.LinkMemberAsync(generateBuilder.Projects[0].Id, generateBuilder.Locations[0], memberBuffer);
+        await cxxRepository.LinkTypeAsync(generateBuilder.Projects[0].Id, ["Arboris"], generateBuilder.Locations[0], generateBuilder.Locations[5]);
+        await cxxRepository.LinkTypeAsync(generateBuilder.Projects[0].Id, ["Arboris"], generateBuilder.Locations[0], generateBuilder.Locations[6]);
 
         await cxxAggregate.UpdateLLMDescriptionAsync(generateBuilder.Nodes[0].Id, "RootNode1");
         await cxxAggregate.UpdateLLMDescriptionAsync(generateBuilder.Nodes[1].Id, "RootNode2");

@@ -1,5 +1,6 @@
 ﻿using Arboris.EntityFramework.EntityFrameworkCore.CXX;
 using Arboris.Tests.EntityFramework.Repositories.TestData;
+using System.Collections.Concurrent;
 
 namespace Arboris.Tests.Core.Aggregate.CxxAggregateTests;
 
@@ -31,7 +32,12 @@ public class LinkMemberAsyncTests
     {
         generateBuilder.GenerateProject1().GenerateRootNode1().GenerateMemberNode();
 
-        await cxxAggregate.LinkMemberAsync(generateBuilder.Projects[0].Id, "Arboris", generateBuilder.Locations[0], generateBuilder.Nodes[1].Id);
+        Dictionary<Models.Analyze.CXX.Location, ConcurrentDictionary<Guid, IReadOnlyList<string>>> memberBuffer = new()
+        {
+            { generateBuilder.Locations[0], new ConcurrentDictionary<Guid, IReadOnlyList<string>>() }
+        };
+        memberBuffer[generateBuilder.Locations[0]].TryAdd(generateBuilder.Nodes[1].Id, ["Arboris"]);
+        await cxxAggregate.LinkMemberAsync(generateBuilder.Projects[0].Id, memberBuffer);
 
         using ArborisDbContext db = await dbFactory.CreateDbContextAsync();
         Assert.AreEqual(2, await db.Cxx_Nodes.CountAsync());
@@ -48,8 +54,13 @@ public class LinkMemberAsyncTests
             .GenerateRootNode1().GenerateRootNode2()
             .GenerateMemberNode().GenerateMemberNode2();
 
-        await cxxAggregate.LinkMemberAsync(generateBuilder.Projects[0].Id, "Arboris", generateBuilder.Locations[0], generateBuilder.Nodes[2].Id);
-        await cxxAggregate.LinkMemberAsync(generateBuilder.Projects[0].Id, "Arboris", generateBuilder.Locations[0], generateBuilder.Nodes[3].Id);
+        Dictionary<Models.Analyze.CXX.Location, ConcurrentDictionary<Guid, IReadOnlyList<string>>> memberBuffer = new()
+        {
+            { generateBuilder.Locations[0], new ConcurrentDictionary<Guid, IReadOnlyList<string>>() }
+        };
+        memberBuffer[generateBuilder.Locations[0]].TryAdd(generateBuilder.Nodes[2].Id, ["Arboris"]);
+        memberBuffer[generateBuilder.Locations[0]].TryAdd(generateBuilder.Nodes[3].Id, ["Arboris"]);
+        await cxxAggregate.LinkMemberAsync(generateBuilder.Projects[0].Id, memberBuffer);
 
         using ArborisDbContext db = await dbFactory.CreateDbContextAsync();
         Assert.AreEqual(4, await db.Cxx_Nodes.CountAsync());

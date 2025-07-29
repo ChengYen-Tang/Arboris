@@ -2,6 +2,7 @@
 using Arboris.Models.Graph.CXX;
 using Arboris.Repositories;
 using FluentResults;
+using System.Collections.Concurrent;
 
 namespace Arboris.Aggregate;
 
@@ -27,12 +28,13 @@ public class CxxAggregate(ICxxRepository nodeRepository)
     /// Link member Node to class node
     /// </summary>
     /// <param name="projectId"> Project id </param>
-    /// <param name="vcProjectName"> Visual studio project name </param>
-    /// <param name="classLocation"> Location of class or struct node </param>
-    /// <param name="memberId"> Member node id </param>
+    /// <param name="memberBuffer"> Member info to be associated </param>
     /// <returns></returns>
-    public Task<Result> LinkMemberAsync(Guid projectId, string vcProjectName, Location classLocation, Guid memberId)
-        => nodeRepository.LinkMemberAsync(projectId, vcProjectName, classLocation, memberId);
+    public Task LinkMemberAsync(Guid projectId, IDictionary<Location, ConcurrentDictionary<Guid, IReadOnlyList<string>>> memberBuffer)
+        => Parallel.ForEachAsync(memberBuffer, async (buffer, Task) =>
+        {
+            await nodeRepository.LinkMemberAsync(projectId, buffer.Key, buffer.Value);
+        });
 
     /// <summary>
     /// Find node dependency and link to the node
@@ -42,8 +44,8 @@ public class CxxAggregate(ICxxRepository nodeRepository)
     /// <param name="nodeLocation"> Source node location </param>
     /// <param name="fromLocation"> Uesd node location </param>
     /// <returns></returns>
-    public Task<Result> LinkDependencyAsync(Guid projectId, Location nodeLocation, Location fromLocation)
-        => nodeRepository.LinkDependencyAsync(projectId, nodeLocation, fromLocation);
+    public Task<Result> LinkDependencyAsync(Guid projectId, IReadOnlyList<string> vcProjectNameFilter, Location nodeLocation, Location fromLocation)
+        => nodeRepository.LinkDependencyAsync(projectId, vcProjectNameFilter, nodeLocation, fromLocation);
 
     /// <summary>
     /// Find node dependency and link to the node
@@ -54,8 +56,8 @@ public class CxxAggregate(ICxxRepository nodeRepository)
     /// <param name="nodeLocation"> Source node location </param>
     /// <param name="fromLocation"> Uesd node location </param>
     /// <returns></returns>
-    public Task<Result> LinkDependencyCallExprOperatorEqualAsync(Guid projectId, Location nodeLocation, Location fromLocation)
-        => nodeRepository.LinkDependencyCallExprOperatorEqualAsync(projectId, nodeLocation, fromLocation);
+    public Task<Result> LinkDependencyCallExprOperatorEqualAsync(Guid projectId, IReadOnlyList<string> vcProjectNameFilter, Location nodeLocation, Location fromLocation)
+        => nodeRepository.LinkDependencyCallExprOperatorEqualAsync(projectId, vcProjectNameFilter, nodeLocation, fromLocation);
 
     /// <summary>
     /// Find node type and link to the node
@@ -65,13 +67,13 @@ public class CxxAggregate(ICxxRepository nodeRepository)
     /// <param name="nodeLocation"> Source node location </param>
     /// <param name="typeLocation"> Type node location </param>
     /// <returns></returns>
-    public async Task<Result> LinkTypeAsync(Guid projectId, Location nodeLocation, Location typeLocation)
+    public async Task<Result> LinkTypeAsync(Guid projectId, IReadOnlyList<string> vcProjectNameFilter, Location nodeLocation, Location typeLocation)
     {
-        Result<Node> nodeResult = await nodeRepository.GetNodeFromDefineLocationAsync(projectId, nodeLocation);
+        Result<Node> nodeResult = await nodeRepository.GetNodeFromDefineLocationCanCrossProjectAsync(projectId, vcProjectNameFilter, nodeLocation);
         if (nodeResult.IsFailed)
             return nodeResult.ToResult();
 
-        return await nodeRepository.LinkTypeAsync(projectId, nodeLocation, typeLocation);
+        return await nodeRepository.LinkTypeAsync(projectId, vcProjectNameFilter, nodeLocation, typeLocation);
     }
 
     /// <summary>
@@ -106,13 +108,13 @@ public class CxxAggregate(ICxxRepository nodeRepository)
 
     public async Task<Result<NodeInfoWithDependency>> GetNodeInfoWithDependencyAsync(Guid nodeId)
     {
-        Task<Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId)>> GetNodeInfoWithClassIdAsyncTask = nodeRepository.GetNodeInfoWithClassIdAsync(nodeId);
+        Task<Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId, string? CursorKindSpelling, bool NeedGenerate, string VcProjectName)>> GetNodeInfoWithClassIdAsyncTask = nodeRepository.GetNodeInfoWithClassIdAsync(nodeId);
         Task<Result<NodeSourceCode[]>> GetNodeSourceCodeAsyncTask = nodeRepository.GetNodeSourceCodeAsync(nodeId);
         Task<Result<Guid[]>> GetNodeDependenciesIdAsyncTask = nodeRepository.GetNodeDependenciesIdAsync(nodeId);
 
         await Task.WhenAll(GetNodeInfoWithClassIdAsyncTask, GetNodeSourceCodeAsyncTask, GetNodeDependenciesIdAsyncTask);
 
-        Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId)> GetNodeInfoWithClassIdResult = GetNodeInfoWithClassIdAsyncTask.Result;
+        Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId, string? CursorKindSpelling, bool NeedGenerate, string VcProjectName)> GetNodeInfoWithClassIdResult = GetNodeInfoWithClassIdAsyncTask.Result;
         Result<NodeSourceCode[]> GetNodeSourceCodeResult = GetNodeSourceCodeAsyncTask.Result;
         Result<Guid[]> GetNodeDependenciesIdResult = GetNodeDependenciesIdAsyncTask.Result;
 
@@ -123,7 +125,7 @@ public class CxxAggregate(ICxxRepository nodeRepository)
         if (GetNodeDependenciesIdResult.IsFailed)
             return GetNodeDependenciesIdResult.ToResult();
 
-        return new NodeInfoWithDependency(GetNodeSourceCodeResult.Value, GetNodeInfoWithClassIdResult.Value.NameSpace, GetNodeInfoWithClassIdResult.Value.Spelling, GetNodeInfoWithClassIdResult.Value.AccessSpecifiers, GetNodeInfoWithClassIdResult.Value.ClassNodeId, GetNodeDependenciesIdResult.Value);
+        return new NodeInfoWithDependency(GetNodeSourceCodeResult.Value, GetNodeInfoWithClassIdResult.Value.NameSpace, GetNodeInfoWithClassIdResult.Value.Spelling, GetNodeInfoWithClassIdResult.Value.AccessSpecifiers, GetNodeInfoWithClassIdResult.Value.ClassNodeId, GetNodeDependenciesIdResult.Value, GetNodeInfoWithClassIdResult.Value.CursorKindSpelling, GetNodeInfoWithClassIdResult.Value.NeedGenerate, GetNodeInfoWithClassIdResult.Value.VcProjectName);
     }
 
     /// <summary>
@@ -150,19 +152,14 @@ public class CxxAggregate(ICxxRepository nodeRepository)
             if (node.IsSuccess)
             {
                 node.Value.ImplementationsLocation.Add(addNode.ImplementationLocation!);
-                Result UpdateResulr = await nodeRepository.UpdateNodeLocationAsync(new(node.Value.Id, node.Value.DefineLocation, node.Value.ImplementationsLocation));
-                if (UpdateResulr.IsFailed)
-                    return UpdateResulr;
-                UpdateResulr = await nodeRepository.UpdateNodeAsync(node.Value);
-                if (UpdateResulr.IsFailed)
-                    return UpdateResulr;
+                Result UpdateResult = await nodeRepository.UpdateNodeLocationAsync(new(node.Value.Id, node.Value.DefineLocation, node.Value.ImplementationsLocation));
+                if (UpdateResult.IsFailed)
+                    return UpdateResult;
+                UpdateResult = await nodeRepository.UpdateNodeAsync(node.Value);
+                if (UpdateResult.IsFailed)
+                    return UpdateResult;
                 return Result.Ok();
             }
-            else if (addNode.DefineLocation.SourceCode == null && addNode.ImplementationLocation is not null)
-                // 這個情況是在 ExploreAstNode 時，defineLocation == location ? null : defineLocation，使用了 defineLocation 作為 addNode 的 DefineLocation
-                // 理論上執行這行前會先使用 await Scan(defineLocation.FilePath, ct) 將 defineLocation 的 Node 加入到資料庫中
-                // 但可能因為 Macro 導致沒有新增 node，這會缺少 sourceCode, class關連及其它資訊
-                addNode = new(addNode.ProjectId, addNode.VcProjectName, addNode.CursorKindSpelling, addNode.Spelling, addNode.CxType, addNode.NameSpace, addNode.AccessSpecifiers, null, addNode.ImplementationLocation);
         }
         bool isExists = await nodeRepository.CheckImplementationNodeExistsAsync(addNode);
         if (isExists)

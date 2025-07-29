@@ -8,8 +8,8 @@ internal static partial class Generator
     {
         Location location = new("Node1.h", (uint)Random.Shared.Next(), 0, 1, 0)
         {
-            DisplayName = "Node1",
-            SourceCode = "Type1 Node1;"
+            DisplayName = new("Node1"),
+            SourceCode = new("Type1 Node1;")
         };
         return new(projectId, "Arboris", "ClassDecl", "Node1", "Type1", "Namespace1", null, location, null);
     }
@@ -18,8 +18,8 @@ internal static partial class Generator
     {
         Location location = new("Node2.cpp", (uint)Random.Shared.Next(), 0, 2, 0)
         {
-            DisplayName = "Node2",
-            SourceCode = "Type2 Node2;"
+            DisplayName = new("Node2"),
+            SourceCode = new("Type2 Node2;")
         };
         return new(projectId, "Arboris", "ClassDecl", "Node2", "Type2", "Namespace2", null, null, location);
     }
@@ -28,8 +28,8 @@ internal static partial class Generator
     {
         Location location = new("MemberNode.h", (uint)Random.Shared.Next(), 0, 3, 0)
         {
-            DisplayName = "MemberNode",
-            SourceCode = "Type3 MemberNode;"
+            DisplayName = new("MemberNode"),
+            SourceCode = new("Type3 MemberNode;")
         };
         return new(projectId, "Arboris", "FunctionDecl", "MemberNode", "Type3", "Namespace3", null, location, null);
     }
@@ -38,8 +38,8 @@ internal static partial class Generator
     {
         Location location = new("DependencyNode.h", (uint)Random.Shared.Next(), 0, 4, 0)
         {
-            DisplayName = "DependencyNode",
-            SourceCode = "Type4 DependencyNode;"
+            DisplayName = new("DependencyNode"),
+            SourceCode = new("Type4 DependencyNode;")
         };
         return new(projectId, "Arboris", "ClassDecl", "DependencyNode", "Type4", "Namespace4", null, location, null);
     }
@@ -48,8 +48,8 @@ internal static partial class Generator
     {
         Location location = new("DependencyNode.h", (uint)Random.Shared.Next(), 0, 4, 0)
         {
-            DisplayName = "DependencyNode",
-            SourceCode = "Type4 DependencyNode;"
+            DisplayName = new("DependencyNode"),
+            SourceCode = new("Type4 DependencyNode;")
         };
         return new(projectId, "Arboris", "FunctionDecl", "DependencyNode", "Type4", "Namespace4", null, location, null);
     }
@@ -58,8 +58,8 @@ internal static partial class Generator
     {
         Location location = new("TypeNode.h", (uint)Random.Shared.Next(), 0, 5, 0)
         {
-            DisplayName = "TypeNode",
-            SourceCode = "Type5 TypeNode;"
+            DisplayName = new("TypeNode"),
+            SourceCode = new("Type5 TypeNode;")
         };
         return new(projectId, "Arboris", "FunctionDecl", "TypeNode", "Type5", "Namespace5", null, location, null);
     }

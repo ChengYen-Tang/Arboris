@@ -1,6 +1,7 @@
 ﻿using Arboris.Models.Analyze.CXX;
 using Arboris.Models.Graph.CXX;
 using FluentResults;
+using System.Collections.Concurrent;
 
 namespace Arboris.Repositories;
 
@@ -53,7 +54,7 @@ public interface ICxxRepository
     /// <param name="projectId"> Project id </param>
     /// <param name="location"> Define location </param>
     /// <returns></returns>
-    Task<Result<Node>> GetNodeFromDefineLocationAsync(Guid projectId, Location location);
+    Task<Result<Node>> GetNodeFromDefineLocationCanCrossProjectAsync(Guid projectId, IReadOnlyList<string> vcProjectNameFilter, Location location);
 
     /// <summary>
     /// Get all nodes from a project
@@ -76,7 +77,7 @@ public interface ICxxRepository
     /// <returns></returns>
     Task<Result<Node>> GetNodeAsync(Guid nodeId);
 
-    Task<Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId)>> GetNodeInfoWithClassIdAsync(Guid nodeId);
+    Task<Result<(string? NameSpace, string? Spelling, string? AccessSpecifiers, Guid? ClassNodeId, string? CursorKindSpelling, bool NeedGenerate, string VcProjectName)>> GetNodeInfoWithClassIdAsync(Guid nodeId);
 
     Task<Result<NodeSourceCode[]>> GetNodeSourceCodeAsync(Guid nodeId);
 
@@ -84,39 +85,41 @@ public interface ICxxRepository
     /// Link a member to a class or struct
     /// </summary>
     /// <param name="projectId"> Project id </param>
-    /// <param name="vcProjectName"> Visual studio project name </param>
     /// <param name="classLocation"> Location of class or struct node </param>
-    /// <param name="memberId"> Member node id </param>
+    /// <param name="node"> member node </param>
     /// <returns></returns>
-    Task<Result> LinkMemberAsync(Guid projectId, string vcProjectName, Location classLocation, Guid memberId);
+    Task LinkMemberAsync(Guid projectId, Models.Analyze.CXX.Location classLocation, ConcurrentDictionary<Guid, IReadOnlyList<string>> node);
 
     /// <summary>
     /// Link a dependency to a class, struct, function, method, field, etc.
     /// </summary>
     /// <param name="projectId"> Project id </param>
+    /// <param name="vcProjectName"> Visual studio project name </param>
     /// <param name="nodeLocation"> Source node location </param>
     /// <param name="fromLocation"> Uesd node location </param>
     /// <returns></returns>
-    Task<Result> LinkDependencyAsync(Guid projectId, Location nodeLocation, Location fromLocation);
+    Task<Result> LinkDependencyAsync(Guid projectId, IReadOnlyList<string> vcProjectNameFilter, Location nodeLocation, Location fromLocation);
 
     /// <summary>
     /// Link a dependency to a class, struct
     /// Because clang returns features of operator= under certain conditions that do not meet our requirements.
     /// </summary>
     /// <param name="projectId"> Project id </param>
+    /// <param name="vcProjectName"> Visual studio project name </param>
     /// <param name="nodeLocation"> Source node location </param>
     /// <param name="fromLocation"> Uesd node location </param>
     /// <returns></returns>
-    Task<Result> LinkDependencyCallExprOperatorEqualAsync(Guid projectId, Location nodeLocation, Location fromLocation);
+    Task<Result> LinkDependencyCallExprOperatorEqualAsync(Guid projectId, IReadOnlyList<string> vcProjectNameFilter, Location nodeLocation, Location fromLocation);
 
     /// <summary>
     /// Link a type to a class, struct, function, method, field, etc.
     /// </summary>
     /// <param name="projectId"> Project id </param>
+    /// <param name="vcProjectName"> Visual studio project name </param>
     /// <param name="nodeLocation"> Source node location </param>
     /// <param name="typeLocation"> Type node location </param>
     /// <returns></returns>
-    Task<Result> LinkTypeAsync(Guid projectId, Location nodeLocation, Location typeLocation);
+    Task<Result> LinkTypeAsync(Guid projectId, IReadOnlyList<string> vcProjectNameFilter, Location nodeLocation, Location typeLocation);
 
     Task<Result> MoveTypeDeclarationLinkAsync(Guid projectId, NodeInfo nodeInfo);
 
@@ -158,5 +161,5 @@ public interface ICxxRepository
     /// <returns></returns>
     Task<Result> UpdateUserDescriptionAsync(Guid projectId, string vcProjectName, string? nameSpace, string? className, string? spelling, string? cxType, string? description);
 
-    Task<Result<NodeLines>> GetNodeAndLineStringFromFile(Guid projectId, string filePath, int line);
+    Task<Result<NodeLines>> GetSourceCodeFromFilePath(Guid projectId, string filePath, int line);
 }

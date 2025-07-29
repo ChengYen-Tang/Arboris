@@ -5,7 +5,7 @@ using ClangSharp;
 using ClangSharp.Interop;
 using FluentResults;
 using Microsoft.Extensions.Logging;
-using System.Diagnostics;
+using System.Collections.Concurrent;
 using Index = ClangSharp.Index;
 
 namespace Arboris.Analyze.CXX.Clang;
@@ -14,7 +14,8 @@ internal class ScanNode(ILogger logger,
     CxxAggregate cxxAggregate, Guid projectId, Index index,
     ProjectInfo projectConfig, string solutionPath, Dictionary<string, bool> isFilesScaned,
     string[] clangBaseArgs, List<TranslationUnit> translationUnits,
-    Action<Result> printErrorMessage, Func<string, string> getRelativePath)
+    Action<Result> printErrorMessage, Func<string, string> getRelativePath,
+    ConcurrentDictionary<Location, ConcurrentDictionary<Guid, IReadOnlyList<string>>> memberBuffer)
     : ScanAbstract(logger, isFilesScaned, getRelativePath)
 {
     private static readonly CXCursorKind[] validCursorKind = [
@@ -91,24 +92,29 @@ internal class ScanNode(ILogger logger,
             logger.LogWarning("Location-> File is Empty: {FullFileName}", fullFileName);
             return null;
         }
-        // Absolute path
         Location fullLocation = new(fullFileName, startLine, startColumn, endLine, endColumn);
-        // Relative path
-        Location location = new(getRelativePath(fullFileName), startLine, startColumn, endLine, endColumn);
+        Location location = new(getRelativePath(fullFileName), startLine, startColumn, endLine, endColumn)
+        {
+            SourceCode = new(ClangCore.GetSourceCode(fullLocation)),
+            DisplayName = new(GetDisplayName(cursor, fullLocation).TrimStart().TrimEnd(' ', '{', '\n', '\r', '\t'))
+        };
         logger.LogDebug("Location-> StartLine: {StartLine}, EndLine: {EndLine}, StartColumn: {StartColumn}, EndColumn: {EndColumn}, FileName: {FileName}", startLine, endLine, startColumn, endColumn, location.FilePath);
 
         if (validCursorKind.Contains(cursor.CursorKind))
         {
             using CXString cXType = cursor.Handle.Type.Spelling;
-            location.SourceCode = ClangCore.GetSourceCode(fullLocation.FilePath, (int)startLine, (int)endLine);
-            location.DisplayName = GetDisplayName(cursor, fullLocation).TrimStart().TrimEnd(' ', '{', '\n', '\r', '\t');
 
             if (cursor is Decl decl)
             {
                 decl.CanonicalDecl.Extent.Start.GetExpansionLocation(out CXFile defineFIle, out uint defineStartLine, out uint defineStartColumn, out uint _);
                 decl.CanonicalDecl.Extent.End.GetExpansionLocation(out CXFile _, out uint defineEndLine, out uint defineEndColumn, out uint _);
                 using CXString defineFileName = defineFIle.Name;
-                Location defineLocation = new(getRelativePath(defineFileName.ToString()), defineStartLine, defineStartColumn, defineEndLine, defineEndColumn);
+                Location fullDefineLocation = new(defineFileName.ToString(), defineStartLine, defineStartColumn, defineEndLine, defineEndColumn);
+                Location defineLocation = new(getRelativePath(defineFileName.ToString()), defineStartLine, defineStartColumn, defineEndLine, defineEndColumn)
+                {
+                    SourceCode = new(ClangCore.GetSourceCode(fullDefineLocation)),
+                    DisplayName = new(GetDisplayName(decl.CanonicalDecl, fullDefineLocation).TrimStart().TrimEnd(' ', '{', '\n', '\r', '\t'))
+                };
                 logger.LogDebug("DefineLocation-> StartLine: {StartLine}, EndLine: {EndLine}, FileName: {FileName}", defineStartLine, defineEndLine, defineFileName);
                 if (defineLocation == location && !cursor.CursorChildren.Any(item => item.CursorKind == CXCursorKind.CXCursor_CompoundStmt))
                 {
@@ -117,7 +123,6 @@ internal class ScanNode(ILogger logger,
                 }
                 else
                 {
-                    //await ScanFile(defineLocation.FilePath, macros, ct);
                     AddNode addNode = new(projectId, projectConfig.ProjectName, cursor.CursorKindSpelling, cursor.Spelling, cXType.ToString(), nameSpace, accessSpecifiers, defineLocation == location ? null : defineLocation, location);
                     Result result = await InsertorUpdateImplementationNode(addNode, decl, ct);
                     printErrorMessage(result);
@@ -162,7 +167,7 @@ internal class ScanNode(ILogger logger,
             return;
 
         // link class or struct member
-        await LinkMember(nodeId, decl);
+        LinkMember(nodeId, decl);
     }
 
     private async Task<Result> InsertorUpdateImplementationNode(AddNode addNode, Decl? decl, CancellationToken ct = default)
@@ -173,11 +178,11 @@ internal class ScanNode(ILogger logger,
         if (decl is null || result.Value is null)
             return Result.Ok();
 
-        await LinkMember(result.Value.Value, decl);
+        LinkMember(result.Value.Value, addNode.DefineLocation is not null ? decl.CanonicalDecl : decl);
         return Result.Ok();
     }
 
-    private async Task LinkMember(Guid nodeId, Decl decl)
+    private void LinkMember(Guid nodeId, Decl decl)
     {
         if (decl.LexicalDeclContext is not null && ((Decl)decl.LexicalDeclContext).CursorKind is
             CXCursorKind.CXCursor_ClassDecl or
@@ -187,22 +192,22 @@ internal class ScanNode(ILogger logger,
             ((Decl)decl.LexicalDeclContext).Extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint startColumn, out uint _);
             ((Decl)decl.LexicalDeclContext).Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint endColumn, out uint _);
             using CXString fileName = file.Name;
-            await LinkMember(nodeId, fileName, startLine, startColumn, endLine, endColumn);
+            InsertLinkMemberToBuffer(nodeId, fileName, startLine, startColumn, endLine, endColumn);
         }
         else if (decl.LexicalParentCursor is not null && ((Decl)decl.LexicalParentCursor).CursorKind is CXCursorKind.CXCursor_ClassTemplate)
         {
             ((Decl)decl.LexicalParentCursor).Extent.Start.GetExpansionLocation(out CXFile file, out uint startLine, out uint startColumn, out uint _);
             ((Decl)decl.LexicalParentCursor).Extent.End.GetExpansionLocation(out CXFile _, out uint endLine, out uint endColumn, out uint _);
             using CXString fileName = file.Name;
-            await LinkMember(nodeId, fileName, startLine, startColumn, endLine, endColumn);
+            InsertLinkMemberToBuffer(nodeId, fileName, startLine, startColumn, endLine, endColumn);
         }
     }
 
-    private async Task LinkMember(Guid nodeId, CXString fileName, uint startLine, uint startColumn, uint endLine, uint endColumn)
+    private void InsertLinkMemberToBuffer(Guid nodeId, CXString fileName, uint startLine, uint startColumn, uint endLine, uint endColumn)
     {
         Location classLocation = new(getRelativePath(fileName.ToString()), startLine, startColumn, endLine, endColumn);
-        Result result = await cxxAggregate.LinkMemberAsync(projectId, projectConfig.ProjectName, classLocation, nodeId);
-        Debug.Assert(result.IsSuccess, "ClassLocation not found");
+        ConcurrentDictionary<Guid, IReadOnlyList<string>> buffer = memberBuffer.GetOrAdd(classLocation, _ => new ConcurrentDictionary<Guid, IReadOnlyList<string>>());
+        buffer.GetOrAdd(nodeId, _ => projectConfig.ProjectDependencies);
     }
 
     private static string GetDisplayName(Cursor rootCursor, Location rootLocation)
